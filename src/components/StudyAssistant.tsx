@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, BookOpen, Brain, FileImage } from "lucide-react";
+import { Upload, BookOpen, Brain, FileImage, Languages } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import ImageUpload from "./ImageUpload";
 import AnalysisResults from "./AnalysisResults";
 import { analyzeImage } from "@/services/geminiService";
@@ -25,6 +27,7 @@ const StudyAssistant = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
 
   const handleImageSelect = (file: File) => {
     setSelectedImage(file);
@@ -39,7 +42,7 @@ const StudyAssistant = () => {
 
     setIsAnalyzing(true);
     try {
-      const result = await analyzeImage(selectedImage);
+      const result = await analyzeImage(selectedImage, outputLanguage);
       setAnalysisResult(result);
       toast.success("Analysis completed successfully!");
     } catch (error) {
@@ -64,7 +67,7 @@ const StudyAssistant = () => {
             <Brain className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Study Assistant
+            Ram's Studies
           </h1>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -91,6 +94,31 @@ const StudyAssistant = () => {
                 onImageSelect={handleImageSelect}
                 selectedImage={selectedImage}
               />
+
+              {/* Language Selection */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <Languages className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-800">Output Language</h3>
+                </div>
+                <RadioGroup
+                  value={outputLanguage}
+                  onValueChange={(value) => setOutputLanguage(value as "english" | "tamil")}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="english" id="english" />
+                    <Label htmlFor="english" className="font-medium">English</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="tamil" id="tamil" />
+                    <Label htmlFor="tamil" className="font-medium">தமிழ் (Tamil)</Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-sm text-gray-600 mt-2">
+                  Choose the language for your study points and summary
+                </p>
+              </div>
 
               {selectedImage && (
                 <div className="flex gap-4 justify-center">

@@ -4,20 +4,26 @@ import { AnalysisResult } from "@/components/StudyAssistant";
 const GEMINI_API_KEY = "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-export const analyzeImage = async (imageFile: File): Promise<AnalysisResult> => {
+export const analyzeImage = async (imageFile: File, outputLanguage: "english" | "tamil" = "english"): Promise<AnalysisResult> => {
   try {
     // Convert image to base64
     const base64Image = await fileToBase64(imageFile);
     const base64Data = base64Image.split(',')[1]; // Remove data:image/jpeg;base64, prefix
 
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide the analysis in Tamil language. Use Tamil script for all content including titles, descriptions, and summary."
+      : "Please provide the analysis in English language.";
+
     const prompt = `
     Analyze this scanned page/image which contains study material in Tamil and/or English. 
+    ${languageInstruction}
+    
     Please provide a comprehensive analysis for study purposes by extracting:
 
     1. The main topic/subject of the content
     2. Key study points with their importance level (high/medium/low)
     3. A brief summary of the content
-    4. The primary language detected (Tamil, English, or Mixed)
+    4. The primary language detected in the source material (Tamil, English, or Mixed)
 
     For each study point, provide:
     - A clear title
@@ -25,7 +31,6 @@ export const analyzeImage = async (imageFile: File): Promise<AnalysisResult> => 
     - Importance level for exam/study purposes
 
     Focus on educational content like definitions, concepts, formulas, key facts, etc.
-    If the text is in Tamil, provide the analysis in English but mention important Tamil terms where relevant.
 
     Please respond in valid JSON format with this structure:
     {
@@ -38,7 +43,7 @@ export const analyzeImage = async (imageFile: File): Promise<AnalysisResult> => 
         }
       ],
       "summary": "string",
-      "language": "string"
+      "language": "string (detected source language)"
     }
     `;
 
