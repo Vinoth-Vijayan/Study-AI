@@ -2,16 +2,24 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BookOpen, CheckCircle, AlertCircle, Circle } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle, AlertCircle, Circle, HelpCircle } from "lucide-react";
 import { AnalysisResult } from "./StudyAssistant";
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
   onReset: () => void;
   selectedImage: File | null;
+  onGenerateQuestions: () => void;
+  isGeneratingQuestions: boolean;
 }
 
-const AnalysisResults = ({ result, onReset, selectedImage }: AnalysisResultsProps) => {
+const AnalysisResults = ({ 
+  result, 
+  onReset, 
+  selectedImage, 
+  onGenerateQuestions, 
+  isGeneratingQuestions 
+}: AnalysisResultsProps) => {
   const getImportanceIcon = (importance: string) => {
     switch (importance) {
       case "high":
@@ -54,17 +62,54 @@ const AnalysisResults = ({ result, onReset, selectedImage }: AnalysisResultsProp
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <BookOpen className="h-5 w-5 text-blue-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Analysis Results</h2>
+                <h2 className="text-2xl font-bold text-gray-800">TNPSC Analysis Results</h2>
               </div>
-              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                Language: {result.language}
-              </Badge>
+              <div className="flex gap-2 mb-2">
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                  Language: {result.language}
+                </Badge>
+                {result.tnpscCategories && result.tnpscCategories.length > 0 && (
+                  <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+                    TNPSC Relevant
+                  </Badge>
+                )}
+              </div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg mb-4">
               <h3 className="font-semibold text-gray-800 mb-2">Main Topic</h3>
               <p className="text-lg text-gray-700">{result.mainTopic}</p>
+              {result.tnpscCategories && result.tnpscCategories.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-gray-600 mb-1">TNPSC Categories:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {result.tnpscCategories.map((category, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {category}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
+            <Button
+              onClick={onGenerateQuestions}
+              disabled={isGeneratingQuestions}
+              className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white"
+            >
+              {isGeneratingQuestions ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating Questions...
+                </>
+              ) : (
+                <>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Generate TNPSC Questions
+                </>
+              )}
+            </Button>
           </div>
 
           {selectedImage && (
@@ -81,7 +126,7 @@ const AnalysisResults = ({ result, onReset, selectedImage }: AnalysisResultsProp
 
       {/* Study Points */}
       <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg border-0">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">Key Study Points</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Key Study Points for TNPSC</h3>
         <div className="space-y-4">
           {result.studyPoints.map((point, index) => (
             <div
@@ -95,7 +140,14 @@ const AnalysisResults = ({ result, onReset, selectedImage }: AnalysisResultsProp
                 </div>
                 {getImportanceBadge(point.importance)}
               </div>
-              <p className="text-gray-700 leading-relaxed">{point.description}</p>
+              <p className="text-gray-700 leading-relaxed mb-2">{point.description}</p>
+              {point.tnpscRelevance && (
+                <div className="mt-2 p-2 bg-yellow-50 rounded border-l-2 border-yellow-400">
+                  <p className="text-sm text-yellow-800">
+                    <strong>TNPSC Relevance:</strong> {point.tnpscRelevance}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>

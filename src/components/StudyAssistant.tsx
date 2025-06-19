@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Upload, BookOpen, Brain, FileImage, Languages } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImageUpload from "./ImageUpload";
 import AnalysisResults from "./AnalysisResults";
-import { analyzeImage } from "@/services/geminiService";
+import QuestionResults from "./QuestionResults";
+import { analyzeImage, generateQuestions } from "@/services/geminiService";
 import { toast } from "sonner";
 
 export interface StudyPoint {
   title: string;
   description: string;
   importance: "high" | "medium" | "low";
+  tnpscRelevance: string;
 }
 
 export interface AnalysisResult {
@@ -21,17 +24,36 @@ export interface AnalysisResult {
   studyPoints: StudyPoint[];
   summary: string;
   language: string;
+  tnpscCategories: string[];
+}
+
+export interface Question {
+  question: string;
+  options?: string[];
+  answer?: string;
+  type: "mcq" | "short" | "essay";
+  difficulty: "easy" | "medium" | "hard";
+  tnpscGroup: string;
+}
+
+export interface QuestionResult {
+  questions: Question[];
+  totalQuestions: number;
 }
 
 const StudyAssistant = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
   const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
+  const [activeTab, setActiveTab] = useState("analysis");
 
   const handleImageSelect = (file: File) => {
     setSelectedImage(file);
     setAnalysisResult(null);
+    setQuestionResult(null);
   };
 
   const handleAnalyze = async () => {
@@ -53,9 +75,31 @@ const StudyAssistant = () => {
     }
   };
 
+  const handleGenerateQuestions = async () => {
+    if (!selectedImage || !analysisResult) {
+      toast.error("Please analyze the image first");
+      return;
+    }
+
+    setIsGeneratingQuestions(true);
+    try {
+      const result = await generateQuestions(selectedImage, analysisResult, outputLanguage);
+      setQuestionResult(result);
+      setActiveTab("questions");
+      toast.success("Questions generated successfully!");
+    } catch (error) {
+      console.error("Question generation failed:", error);
+      toast.error("Failed to generate questions. Please try again.");
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
+  };
+
   const handleReset = () => {
     setSelectedImage(null);
     setAnalysisResult(null);
+    setQuestionResult(null);
+    setActiveTab("analysis");
   };
 
   return (
@@ -71,7 +115,7 @@ const StudyAssistant = () => {
           </h1>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Upload a scanned page in Tamil or English, and I'll extract the key study points for you
+          TNPSC Group 1, 2 & 4 Exam Preparation - Upload study material and get key points & practice questions
         </p>
       </div>
 
@@ -86,7 +130,7 @@ const StudyAssistant = () => {
                   Upload Your Study Material
                 </h2>
                 <p className="text-gray-600">
-                  Select a scanned page or image of your study material
+                  Select a scanned page or image of your TNPSC study material
                 </p>
               </div>
 
@@ -116,7 +160,7 @@ const StudyAssistant = () => {
                   </div>
                 </RadioGroup>
                 <p className="text-sm text-gray-600 mt-2">
-                  Choose the language for your study points and summary
+                  Choose the language for your study points and questions
                 </p>
               </div>
 
@@ -130,12 +174,12 @@ const StudyAssistant = () => {
                     {isAnalyzing ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Analyzing...
+                        Analyzing for TNPSC...
                       </>
                     ) : (
                       <>
                         <BookOpen className="h-4 w-4 mr-2" />
-                        Analyze for Study Points
+                        Analyze for TNPSC Exam
                       </>
                     )}
                   </Button>
@@ -152,11 +196,50 @@ const StudyAssistant = () => {
             </div>
           </Card>
         ) : (
-          <AnalysisResults 
-            result={analysisResult}
-            onReset={handleReset}
-            selectedImage={selectedImage}
-          />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="analysis">Study Points</TabsTrigger>
+              <TabsTrigger value="questions">Practice Questions</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="analysis">
+              <AnalysisResults 
+                result={analysisResult}
+                onReset={handleReset}
+                selectedImage={selectedImage}
+                onGenerateQuestions={handleGenerateQuestions}
+                isGeneratingQuestions={isGeneratingQuestions}
+              />
+            </TabsContent>
+            
+            <TabsContent value="questions">
+              {questionResult ? (
+                <QuestionResults 
+                  result={questionResult}
+                  onReset={handleReset}
+                  selectedImage={selectedImage}
+                />
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-gray-600 mb-4">No questions generated yet.</p>
+                  <Button
+                    onClick={handleGenerateQuestions}
+                    disabled={isGeneratingQuestions}
+                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
+                  >
+                    {isGeneratingQuestions ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Generating Questions...
+                      </>
+                    ) : (
+                      "Generate TNPSC Questions"
+                    )}
+                  </Button>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>
