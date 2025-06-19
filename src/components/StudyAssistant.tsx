@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImageUpload from "./ImageUpload";
 import AnalysisResults from "./AnalysisResults";
 import QuestionResults from "./QuestionResults";
-import { analyzeImage, generateQuestions } from "@/services/geminiService";
+import { analyzeMultipleFiles, generateQuestions } from "@/services/geminiService";
 import { toast } from "sonner";
 
 export interface StudyPoint {
@@ -42,7 +42,7 @@ export interface QuestionResult {
 }
 
 const StudyAssistant = () => {
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -50,40 +50,40 @@ const StudyAssistant = () => {
   const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
   const [activeTab, setActiveTab] = useState("analysis");
 
-  const handleImageSelect = (file: File) => {
-    setSelectedImage(file);
+  const handleFilesSelect = (files: File[]) => {
+    setSelectedFiles(files);
     setAnalysisResult(null);
     setQuestionResult(null);
   };
 
   const handleAnalyze = async () => {
-    if (!selectedImage) {
-      toast.error("Please select an image first");
+    if (selectedFiles.length === 0) {
+      toast.error("Please select at least one file first");
       return;
     }
 
     setIsAnalyzing(true);
     try {
-      const result = await analyzeImage(selectedImage, outputLanguage);
+      const result = await analyzeMultipleFiles(selectedFiles, outputLanguage);
       setAnalysisResult(result);
       toast.success("Analysis completed successfully!");
     } catch (error) {
       console.error("Analysis failed:", error);
-      toast.error("Failed to analyze image. Please try again.");
+      toast.error("Failed to analyze files. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
   };
 
   const handleGenerateQuestions = async () => {
-    if (!selectedImage || !analysisResult) {
-      toast.error("Please analyze the image first");
+    if (selectedFiles.length === 0 || !analysisResult) {
+      toast.error("Please analyze the files first");
       return;
     }
 
     setIsGeneratingQuestions(true);
     try {
-      const result = await generateQuestions(selectedImage, analysisResult, outputLanguage);
+      const result = await generateQuestions(selectedFiles[0], analysisResult, outputLanguage);
       setQuestionResult(result);
       setActiveTab("questions");
       toast.success("Questions generated successfully!");
@@ -96,7 +96,7 @@ const StudyAssistant = () => {
   };
 
   const handleReset = () => {
-    setSelectedImage(null);
+    setSelectedFiles([]);
     setAnalysisResult(null);
     setQuestionResult(null);
     setActiveTab("analysis");
@@ -115,7 +115,7 @@ const StudyAssistant = () => {
           </h1>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          TNPSC Group 1, 2 & 4 Exam Preparation - Upload study material and get key points & practice questions
+          TNPSC Group 1, 2 & 4 Exam Preparation - Upload study materials (images & PDFs) and get key points & practice questions
         </p>
       </div>
 
@@ -127,16 +127,16 @@ const StudyAssistant = () => {
               <div className="text-center">
                 <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                  Upload Your Study Material
+                  Upload Your Study Materials
                 </h2>
                 <p className="text-gray-600">
-                  Select a scanned page or image of your TNPSC study material
+                  Select multiple images and PDFs of your TNPSC study materials
                 </p>
               </div>
 
               <ImageUpload 
-                onImageSelect={handleImageSelect}
-                selectedImage={selectedImage}
+                onFilesSelect={handleFilesSelect}
+                selectedFiles={selectedFiles}
               />
 
               {/* Language Selection */}
@@ -164,7 +164,7 @@ const StudyAssistant = () => {
                 </p>
               </div>
 
-              {selectedImage && (
+              {selectedFiles.length > 0 && (
                 <div className="flex gap-4 justify-center">
                   <Button
                     onClick={handleAnalyze}
@@ -206,7 +206,7 @@ const StudyAssistant = () => {
               <AnalysisResults 
                 result={analysisResult}
                 onReset={handleReset}
-                selectedImage={selectedImage}
+                selectedFiles={selectedFiles}
                 onGenerateQuestions={handleGenerateQuestions}
                 isGeneratingQuestions={isGeneratingQuestions}
               />
@@ -217,7 +217,7 @@ const StudyAssistant = () => {
                 <QuestionResults 
                   result={questionResult}
                   onReset={handleReset}
-                  selectedImage={selectedImage}
+                  selectedFiles={selectedFiles}
                 />
               ) : (
                 <Card className="p-8 text-center">

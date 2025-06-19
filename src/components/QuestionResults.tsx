@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +10,10 @@ import QuizMode from "./QuizMode";
 interface QuestionResultsProps {
   result: QuestionResult;
   onReset: () => void;
-  selectedImage: File | null;
+  selectedFiles: File[];
 }
 
-const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProps) => {
+const QuestionResults = ({ result, onReset, selectedFiles }: QuestionResultsProps) => {
   const [showQuizMode, setShowQuizMode] = useState(false);
 
   const getDifficultyBadge = (difficulty: string) => {
@@ -62,7 +63,7 @@ const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProp
         result={result}
         onReset={onReset}
         onBackToResults={() => setShowQuizMode(false)}
-        selectedImage={selectedImage}
+        selectedFiles={selectedFiles}
       />
     );
   }
@@ -80,7 +81,7 @@ const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProp
                 className="text-gray-600 hover:text-gray-800"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Upload New Image
+                Upload New Files
               </Button>
             </div>
             
@@ -92,6 +93,9 @@ const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProp
               <div className="flex gap-3">
                 <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
                   Total Questions: {result.totalQuestions}
+                </Badge>
+                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  Source Files: {selectedFiles.length}
                 </Badge>
                 {mcqCount > 0 && (
                   <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
@@ -118,13 +122,21 @@ const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProp
             )}
           </div>
 
-          {selectedImage && (
+          {selectedFiles.length > 0 && (
             <div className="w-48 flex-shrink-0">
-              <img
-                src={URL.createObjectURL(selectedImage)}
-                alt="Source material"
-                className="w-full h-32 object-cover rounded-lg shadow-md"
-              />
+              <div className="text-sm font-medium text-gray-700 mb-2">Source Files</div>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {selectedFiles.slice(0, 3).map((file, index) => (
+                  <div key={index} className="text-xs text-gray-600 truncate">
+                    {file.name}
+                  </div>
+                ))}
+                {selectedFiles.length > 3 && (
+                  <div className="text-xs text-gray-500">
+                    +{selectedFiles.length - 3} more files
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

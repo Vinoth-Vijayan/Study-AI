@@ -1,34 +1,31 @@
-
 import { AnalysisResult, QuestionResult } from "@/components/StudyAssistant";
 
 const GEMINI_API_KEY = "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-export const analyzeImage = async (imageFile: File, outputLanguage: "english" | "tamil" = "english"): Promise<AnalysisResult> => {
+export const analyzeMultipleFiles = async (files: File[], outputLanguage: "english" | "tamil" = "english"): Promise<AnalysisResult> => {
   try {
-    // Convert image to base64
-    const base64Image = await fileToBase64(imageFile);
-    const base64Data = base64Image.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-
+    console.log(`Analyzing ${files.length} files for TNPSC preparation...`);
+    
     const languageInstruction = outputLanguage === "tamil" 
       ? "Please provide the analysis in Tamil language. Use Tamil script for all content including titles, descriptions, and summary."
       : "Please provide the analysis in English language.";
 
     const prompt = `
-    Analyze this scanned page/image which contains study material specifically for TNPSC (Tamil Nadu Public Service Commission) exam preparation - Group 1, Group 2, and Group 4. 
+    Analyze these ${files.length} study materials (images and/or PDFs) which contain content specifically for TNPSC (Tamil Nadu Public Service Commission) exam preparation - Group 1, Group 2, and Group 4. 
     ${languageInstruction}
     
-    Please provide a comprehensive analysis for TNPSC exam purposes by extracting:
+    Please provide a comprehensive analysis for TNPSC exam purposes by extracting information from ALL uploaded files and combining them into:
 
-    1. The main topic/subject of the content
+    1. The main topic/subject that covers all the content
     2. Key study points with their importance level (high/medium/low) specifically for TNPSC exams
-    3. A brief summary of the content
-    4. The primary language detected in the source material (Tamil, English, or Mixed)
+    3. A brief summary combining insights from all files
+    4. The primary language detected in the source materials (Tamil, English, or Mixed)
     5. TNPSC categories this content relates to (History, Geography, Polity, Economy, Current Affairs, Science, etc.)
 
     For each study point, provide:
     - A clear title
-    - A detailed description/explanation
+    - A detailed description/explanation combining information from relevant files
     - Importance level for TNPSC exam purposes (high/medium/low)
     - Specific TNPSC relevance (which group exams, which subjects, why important)
 
@@ -39,6 +36,8 @@ export const analyzeImage = async (imageFile: File, outputLanguage: "english" | 
     - Science and Technology
     - General Knowledge
     - Administrative concepts
+
+    Analyze all files comprehensively and provide integrated study points that connect concepts across multiple files where relevant.
 
     Please respond in valid JSON format with this structure:
     {
@@ -57,17 +56,37 @@ export const analyzeImage = async (imageFile: File, outputLanguage: "english" | 
     }
     `;
 
+    // Process files and convert to base64
+    const fileParts = await Promise.all(files.map(async (file) => {
+      if (file.type === 'application/pdf') {
+        // For PDFs, we'll send them as documents
+        const base64Data = await fileToBase64(file);
+        const base64Content = base64Data.split(',')[1];
+        return {
+          inline_data: {
+            mime_type: file.type,
+            data: base64Content
+          }
+        };
+      } else {
+        // For images
+        const base64Data = await fileToBase64(file);
+        const base64Content = base64Data.split(',')[1];
+        return {
+          inline_data: {
+            mime_type: file.type,
+            data: base64Content
+          }
+        };
+      }
+    }));
+
     const requestBody = {
       contents: [
         {
           parts: [
             { text: prompt },
-            {
-              inline_data: {
-                mime_type: imageFile.type,
-                data: base64Data
-              }
-            }
+            ...fileParts
           ]
         }
       ],
@@ -135,16 +154,20 @@ export const analyzeImage = async (imageFile: File, outputLanguage: "english" | 
             tnpscRelevance: "General TNPSC preparation material"
           }
         ],
-        summary: "The image has been analyzed for TNPSC exam preparation. Please review the content analysis above.",
+        summary: "The files have been analyzed for TNPSC exam preparation. Please review the content analysis above.",
         language: "Mixed",
         tnpscCategories: ["General Knowledge"]
       };
     }
 
   } catch (error) {
-    console.error('Error analyzing image:', error);
-    throw new Error('Failed to analyze the image. Please check your internet connection and try again.');
+    console.error('Error analyzing files:', error);
+    throw new Error('Failed to analyze the files. Please check your internet connection and try again.');
   }
+};
+
+export const analyzeImage = async (imageFile: File, outputLanguage: "english" | "tamil" = "english"): Promise<AnalysisResult> => {
+  return analyzeMultipleFiles([imageFile], outputLanguage);
 };
 
 export const generateQuestions = async (
