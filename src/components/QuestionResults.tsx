@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, HelpCircle, CheckCircle, AlertTriangle, Brain } from "lucide-react";
 import { QuestionResult } from "./StudyAssistant";
 import { useState } from "react";
+import QuizMode from "./QuizMode";
 
 interface QuestionResultsProps {
   result: QuestionResult;
