@@ -1,9 +1,9 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, HelpCircle, CheckCircle, AlertTriangle, Brain } from "lucide-react";
 import { QuestionResult } from "./StudyAssistant";
+import { useState } from "react";
 
 interface QuestionResultsProps {
   result: QuestionResult;
@@ -12,6 +12,8 @@ interface QuestionResultsProps {
 }
 
 const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProps) => {
+  const [showQuizMode, setShowQuizMode] = useState(false);
+
   const getDifficultyBadge = (difficulty: string) => {
     switch (difficulty) {
       case "easy":
@@ -51,6 +53,19 @@ const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProp
     }
   };
 
+  const mcqCount = result.questions.filter(q => q.type === "mcq" && q.options && q.options.length > 0).length;
+
+  if (showQuizMode) {
+    return (
+      <QuizMode
+        result={result}
+        onReset={onReset}
+        onBackToResults={() => setShowQuizMode(false)}
+        selectedImage={selectedImage}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -73,10 +88,33 @@ const QuestionResults = ({ result, onReset, selectedImage }: QuestionResultsProp
                 <HelpCircle className="h-5 w-5 text-green-600" />
                 <h2 className="text-2xl font-bold text-gray-800">TNPSC Practice Questions</h2>
               </div>
-              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                Total Questions: {result.totalQuestions}
-              </Badge>
+              <div className="flex gap-3">
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                  Total Questions: {result.totalQuestions}
+                </Badge>
+                {mcqCount > 0 && (
+                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                    Quiz Available: {mcqCount} MCQs
+                  </Badge>
+                )}
+              </div>
             </div>
+
+            {/* Quiz Mode Button */}
+            {mcqCount > 0 && (
+              <div className="mb-4">
+                <Button
+                  onClick={() => setShowQuizMode(true)}
+                  className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
+                >
+                  <Brain className="h-4 w-4 mr-2" />
+                  Start Interactive Quiz ({mcqCount} Questions)
+                </Button>
+                <p className="text-sm text-gray-600 mt-2">
+                  Test your knowledge with interactive multiple-choice questions
+                </p>
+              </div>
+            )}
           </div>
 
           {selectedImage && (
