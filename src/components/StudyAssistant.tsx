@@ -1,14 +1,15 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, BookOpen, Brain, FileImage, Languages } from "lucide-react";
+import { Upload, BookOpen, Brain, FileImage, Languages, FileText } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImageUpload from "./ImageUpload";
 import AnalysisResults from "./AnalysisResults";
 import QuestionResults from "./QuestionResults";
+import PdfAnalyzer from "./PdfAnalyzer";
+import EnhancedQuizMode from "./EnhancedQuizMode";
 import { analyzeMultipleFiles, generateQuestions } from "@/services/geminiService";
 import { toast } from "sonner";
 
@@ -49,6 +50,13 @@ const StudyAssistant = () => {
   const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
   const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
   const [activeTab, setActiveTab] = useState("analysis");
+  const [showPdfAnalyzer, setShowPdfAnalyzer] = useState(false);
+  const [showEnhancedQuiz, setShowEnhancedQuiz] = useState(false);
+  const [quizConfig, setQuizConfig] = useState<{
+    pageRange: { start: number; end: number };
+    difficulty: string;
+    questionsPerPage: number;
+  } | null>(null);
 
   const handleFilesSelect = (files: File[]) => {
     setSelectedFiles(files);
@@ -100,7 +108,65 @@ const StudyAssistant = () => {
     setAnalysisResult(null);
     setQuestionResult(null);
     setActiveTab("analysis");
+    setShowPdfAnalyzer(false);
+    setShowEnhancedQuiz(false);
+    setQuizConfig(null);
   };
+
+  const handlePdfAnalysis = () => {
+    const pdfFile = selectedFiles.find(file => file.type === 'application/pdf');
+    if (pdfFile) {
+      setShowPdfAnalyzer(true);
+    } else {
+      toast.error("Please select a PDF file for page-by-page analysis");
+    }
+  };
+
+  const handleStartEnhancedQuiz = (
+    pageRange: { start: number; end: number },
+    difficulty: string,
+    questionsPerPage: number
+  ) => {
+    setQuizConfig({ pageRange, difficulty, questionsPerPage });
+    setShowEnhancedQuiz(true);
+  };
+
+  // If showing PDF analyzer
+  if (showPdfAnalyzer) {
+    const pdfFile = selectedFiles.find(file => file.type === 'application/pdf');
+    if (pdfFile) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <PdfAnalyzer
+            file={pdfFile}
+            onReset={handleReset}
+            onStartQuiz={handleStartEnhancedQuiz}
+            outputLanguage={outputLanguage}
+          />
+        </div>
+      );
+    }
+  }
+
+  // If showing enhanced quiz
+  if (showEnhancedQuiz && quizConfig) {
+    const pdfFile = selectedFiles.find(file => file.type === 'application/pdf');
+    if (pdfFile) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <EnhancedQuizMode
+            file={pdfFile}
+            pageRange={quizConfig.pageRange}
+            difficulty={quizConfig.difficulty}
+            questionsPerPage={quizConfig.questionsPerPage}
+            outputLanguage={outputLanguage}
+            onReset={handleReset}
+            onBackToAnalyzer={() => setShowEnhancedQuiz(false)}
+          />
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -165,7 +231,7 @@ const StudyAssistant = () => {
               </div>
 
               {selectedFiles.length > 0 && (
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center flex-wrap">
                   <Button
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
@@ -183,6 +249,17 @@ const StudyAssistant = () => {
                       </>
                     )}
                   </Button>
+
+                  {selectedFiles.some(file => file.type === 'application/pdf') && (
+                    <Button
+                      onClick={handlePdfAnalysis}
+                      variant="outline"
+                      className="px-6 py-3 border-2 border-green-500 text-green-600 hover:bg-green-50"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      PDF Page Analysis
+                    </Button>
+                  )}
                   
                   <Button
                     onClick={handleReset}
