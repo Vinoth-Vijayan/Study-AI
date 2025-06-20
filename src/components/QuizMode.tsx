@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ interface QuizModeProps {
   result: QuestionResult;
   onReset: () => void;
   onBackToResults: () => void;
-  selectedImage: File | null;
+  selectedFiles: File[];
 }
 
 interface UserAnswer {
@@ -34,7 +33,7 @@ interface QuizResult {
   }[];
 }
 
-const QuizMode = ({ result, onReset, onBackToResults, selectedImage }: QuizModeProps) => {
+const QuizMode = ({ result, onReset, onBackToResults, selectedFiles }: QuizModeProps) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string>("");
@@ -224,7 +223,7 @@ const QuizMode = ({ result, onReset, onBackToResults, selectedImage }: QuizModeP
               Back to Questions
             </Button>
             <Button onClick={onReset} variant="outline">
-              Upload New Image
+              Upload New Files
             </Button>
           </div>
         </Card>
@@ -326,13 +325,21 @@ const QuizMode = ({ result, onReset, onBackToResults, selectedImage }: QuizModeP
             </div>
           </div>
 
-          {selectedImage && (
+          {selectedFiles.length > 0 && (
             <div className="w-48 flex-shrink-0">
-              <img
-                src={URL.createObjectURL(selectedImage)}
-                alt="Source material"
-                className="w-full h-32 object-cover rounded-lg shadow-md"
-              />
+              <div className="text-sm font-medium text-gray-700 mb-2">Source Files</div>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {selectedFiles.slice(0, 3).map((file, index) => (
+                  <div key={index} className="text-xs text-gray-600 truncate">
+                    {file.name}
+                  </div>
+                ))}
+                {selectedFiles.length > 3 && (
+                  <div className="text-xs text-gray-500">
+                    +{selectedFiles.length - 3} more files
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

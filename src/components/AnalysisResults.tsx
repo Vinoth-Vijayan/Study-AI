@@ -8,7 +8,7 @@ import { AnalysisResult } from "./StudyAssistant";
 interface AnalysisResultsProps {
   result: AnalysisResult;
   onReset: () => void;
-  selectedImage: File | null;
+  selectedFiles: File[];
   onGenerateQuestions: () => void;
   isGeneratingQuestions: boolean;
 }
@@ -16,7 +16,7 @@ interface AnalysisResultsProps {
 const AnalysisResults = ({ 
   result, 
   onReset, 
-  selectedImage, 
+  selectedFiles, 
   onGenerateQuestions, 
   isGeneratingQuestions 
 }: AnalysisResultsProps) => {
@@ -44,7 +44,7 @@ const AnalysisResults = ({
 
   return (
     <div className="space-y-6">
-      {/* Header with image preview */}
+      {/* Header with files preview */}
       <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <div className="flex items-start gap-6">
           <div className="flex-1">
@@ -55,7 +55,7 @@ const AnalysisResults = ({
                 className="text-gray-600 hover:text-gray-800"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Upload New Image
+                Upload New Files
               </Button>
             </div>
             
@@ -67,6 +67,9 @@ const AnalysisResults = ({
               <div className="flex gap-2 mb-2">
                 <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
                   Language: {result.language}
+                </Badge>
+                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  Source Files: {selectedFiles.length}
                 </Badge>
                 {result.tnpscCategories && result.tnpscCategories.length > 0 && (
                   <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
@@ -112,13 +115,21 @@ const AnalysisResults = ({
             </Button>
           </div>
 
-          {selectedImage && (
+          {selectedFiles.length > 0 && (
             <div className="w-48 flex-shrink-0">
-              <img
-                src={URL.createObjectURL(selectedImage)}
-                alt="Analyzed material"
-                className="w-full h-32 object-cover rounded-lg shadow-md"
-              />
+              <div className="text-sm font-medium text-gray-700 mb-2">Source Files</div>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {selectedFiles.slice(0, 3).map((file, index) => (
+                  <div key={index} className="text-xs text-gray-600 truncate">
+                    {file.name}
+                  </div>
+                ))}
+                {selectedFiles.length > 3 && (
+                  <div className="text-xs text-gray-500">
+                    +{selectedFiles.length - 3} more files
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
