@@ -622,6 +622,79 @@ export const generateAdvancedQuestions = async (
   }
 };
 
+export const generateQuestionsFromAnalysis = async (
+  analysisResult: any,
+  outputLanguage: "english" | "tamil"
+): Promise<any> => {
+  try {
+    const prompt = `
+Based on the following TNPSC analysis results, generate 15-20 multiple choice questions in ${outputLanguage}:
+
+Topic: ${analysisResult.mainTopic}
+Summary: ${analysisResult.summary}
+Study Points: ${analysisResult.studyPoints.map((point: any) => `${point.title}: ${point.description}`).join('\n')}
+TNPSC Categories: ${analysisResult.tnpscCategories?.join(', ')}
+
+Generate questions with:
+- 4 options each (A, B, C, D)
+- Mixed difficulty levels (easy, medium, hard)
+- TNPSC Group 1, 2, 4 exam style questions
+- Focus on the key concepts from the analysis
+
+Return as JSON with this structure:
+{
+  "questions": [
+    {
+      "question": "Question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": "Correct option text",
+      "type": "mcq",
+      "difficulty": "easy|medium|hard",
+      "tnpscGroup": "Group 1|Group 2|Group 4"
+    }
+  ],
+  "totalQuestions": number
+}
+`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!content) {
+      throw new Error('No content received from Gemini API');
+    }
+
+    // Clean and parse the JSON response
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const result = JSON.parse(cleanedContent);
+    
+    return result;
+  } catch (error) {
+    console.error('Error generating questions from analysis:', error);
+    throw error;
+  }
+};
+
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
