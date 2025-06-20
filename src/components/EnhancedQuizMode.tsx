@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, CheckCircle, AlertTriangle, Brain, Download, Trophy, Target, Image as ImageIcon } from "lucide-react";
 import { generateAdvancedQuestions, analyzeImage } from "@/services/geminiService";
 import { downloadPDF } from "@/utils/pdfUtils";
+import { extractTextFromPdfPage } from "@/utils/pdfReader";
 import { toast } from "sonner";
 
 interface EnhancedQuizModeProps {
@@ -57,35 +58,69 @@ const EnhancedQuizMode = ({
   const [quizResult, setQuizResult] = useState<any>(null);
 
   const startQuiz = async () => {
+    console.log("Starting quiz generation...", { pageRange, difficulty, questionsPerPage, isImageMode });
     setIsGenerating(true);
+    
     try {
       let result;
       
       if (isImageMode && imageFiles.length > 0) {
+        console.log("Generating questions from images:", imageFiles.length);
         // Generate questions from images
         const allQuestions: QuizQuestion[] = [];
         
         for (let i = 0; i < imageFiles.length; i++) {
           const imageFile = imageFiles[i];
-          const analysis = await analyzeImage(imageFile, outputLanguage);
+          console.log(`Analyzing image ${i + 1}...`);
           
-          // Generate questions based on image analysis
-          const imageQuestions = await generateQuestionsFromImageAnalysis(analysis, difficulty, questionsPerPage, i + 1);
-          allQuestions.push(...imageQuestions);
+          try {
+            const analysis = await analyzeImage(imageFile, outputLanguage);
+            console.log(`Image ${i + 1} analysis:`, analysis);
+            
+            // Generate questions based on image analysis
+            const imageQuestions = await generateQuestionsFromImageAnalysis(analysis, difficulty, questionsPerPage, i + 1);
+            allQuestions.push(...imageQuestions);
+          } catch (error) {
+            console.error(`Failed to analyze image ${i + 1}:`, error);
+            toast.error(`Failed to analyze image ${i + 1}. Skipping...`);
+          }
         }
         
         result = { questions: allQuestions };
       } else {
-        // Use existing PDF logic
-        result = await generateAdvancedQuestions(
-          file,
-          pageRange,
-          difficulty,
-          questionsPerPage,
-          outputLanguage
-        );
+        console.log("Generating questions from PDF pages:", pageRange);
+        // Generate questions from PDF pages
+        const allQuestions: QuizQuestion[] = [];
+        
+        for (let page = pageRange.start; page <= pageRange.end; page++) {
+          console.log(`Processing PDF page ${page}...`);
+          
+          try {
+            const pageText = await extractTextFromPdfPage(file, page);
+            if (pageText.trim()) {
+              const pageQuestions = await generateQuestionsFromPageText(
+                pageText, 
+                page, 
+                difficulty, 
+                questionsPerPage, 
+                outputLanguage
+              );
+              allQuestions.push(...pageQuestions);
+            }
+          } catch (error) {
+            console.error(`Failed to process page ${page}:`, error);
+            toast.error(`Failed to process page ${page}. Skipping...`);
+          }
+        }
+        
+        result = { questions: allQuestions };
       }
       
+      if (result.questions.length === 0) {
+        throw new Error("No questions were generated. Please try again.");
+      }
+      
+      console.log("Generated questions:", result.questions.length);
       setQuestions(result.questions);
       setQuizStarted(true);
       toast.success(`Generated ${result.questions.length} questions successfully!`);
@@ -94,6 +129,84 @@ const EnhancedQuizMode = ({
       toast.error("Failed to generate questions. Please try again.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const generateQuestionsFromPageText = async (
+    pageText: string, 
+    pageNumber: number, 
+    difficulty: string, 
+    questionsPerPage: number, 
+    outputLanguage: string
+  ): Promise<QuizQuestion[]> => {
+    console.log(`Generating ${questionsPerPage} questions for page ${pageNumber}...`);
+    
+    const prompt = `
+Based on this text content from page ${pageNumber} for TNPSC preparation, generate ${questionsPerPage} multiple choice questions:
+
+Content: ${pageText.substring(0, 3000)}
+
+Difficulty: ${difficulty}
+Language: ${outputLanguage}
+
+Generate questions with:
+- 4 options each (A, B, C, D)
+- TNPSC Group 1, 2, 4 exam style
+- Focus on key concepts and facts from this page
+- Questions should test understanding, not just memorization
+
+Return as JSON array of questions with this exact structure:
+[
+  {
+    "question": "Question text here",
+    "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+    "answer": "Option A text",
+    "type": "mcq",
+    "difficulty": "${difficulty}",
+    "tnpscGroup": "Group 1",
+    "pageNumber": ${pageNumber}
+  }
+]
+
+IMPORTANT: Return only valid JSON array, no other text.
+`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!content) {
+        throw new Error("No content received from API");
+      }
+
+      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      const questions = JSON.parse(cleanedContent);
+      
+      console.log(`Generated ${questions.length} questions for page ${pageNumber}`);
+      return questions;
+    } catch (error) {
+      console.error(`Failed to generate questions for page ${pageNumber}:`, error);
+      throw error;
     }
   };
 

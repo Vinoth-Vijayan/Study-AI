@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ArrowRight, FileText, Download, Brain, HelpCircle, File, Target, Zap } from "lucide-react";
 import { generatePageAnalysis } from "@/services/geminiService";
 import { downloadPDF } from "@/utils/pdfUtils";
+import { getPdfPageCount } from "@/utils/pdfReader";
 import { toast } from "sonner";
 
 interface PdfAnalyzerProps {
@@ -26,13 +27,34 @@ interface PageAnalysis {
 
 const PdfAnalyzer = ({ file, onReset, onStartQuiz, outputLanguage }: PdfAnalyzerProps) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(100); // This would be determined from PDF
+  const [totalPages, setTotalPages] = useState(1);
   const [pageAnalyses, setPageAnalyses] = useState<Map<number, PageAnalysis>>(new Map());
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [quizStartPage, setQuizStartPage] = useState<number>(1);
   const [quizEndPage, setQuizEndPage] = useState<number>(10);
   const [quizDifficulty, setQuizDifficulty] = useState<string>("medium");
   const [questionsPerPage, setQuestionsPerPage] = useState<number>(10);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(true);
+
+  // Load PDF page count on component mount
+  useEffect(() => {
+    const loadPdfInfo = async () => {
+      try {
+        setIsLoadingPdf(true);
+        const pageCount = await getPdfPageCount(file);
+        setTotalPages(pageCount);
+        setQuizEndPage(Math.min(10, pageCount));
+        console.log(`PDF loaded: ${pageCount} pages`);
+      } catch (error) {
+        console.error('Error loading PDF info:', error);
+        toast.error('Failed to load PDF information');
+      } finally {
+        setIsLoadingPdf(false);
+      }
+    };
+
+    loadPdfInfo();
+  }, [file]);
 
   const getCurrentPageAnalysis = async () => {
     if (pageAnalyses.has(currentPage)) {
@@ -83,11 +105,24 @@ const PdfAnalyzer = ({ file, onReset, onStartQuiz, outputLanguage }: PdfAnalyzer
   };
 
   const handleStartQuiz = () => {
+    console.log("Starting quiz with config:", {
+      startPage: quizStartPage,
+      endPage: quizEndPage,
+      difficulty: quizDifficulty,
+      questionsPerPage
+    });
+
     if (quizStartPage > quizEndPage) {
       toast.error("Start page cannot be greater than end page");
       return;
     }
+
+    if (quizStartPage < 1 || quizEndPage > totalPages) {
+      toast.error(`Page range must be between 1 and ${totalPages}`);
+      return;
+    }
     
+    toast.success("Starting quiz generation...");
     onStartQuiz(
       { start: quizStartPage, end: quizEndPage },
       quizDifficulty,
@@ -96,6 +131,17 @@ const PdfAnalyzer = ({ file, onReset, onStartQuiz, outputLanguage }: PdfAnalyzer
   };
 
   const currentAnalysis = pageAnalyses.get(currentPage);
+
+  if (isLoadingPdf) {
+    return (
+      <Card className="p-4 md:p-6 bg-white/80 backdrop-blur-sm shadow-lg border-0">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading PDF information...</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -284,7 +330,7 @@ const PdfAnalyzer = ({ file, onReset, onStartQuiz, outputLanguage }: PdfAnalyzer
                 min="1"
                 max={totalPages}
                 value={quizStartPage}
-                onChange={(e) => setQuizStartPage(parseInt(e.target.value) || 1)}
+                onChange={(e) => setQuizStartPage(Math.max(1, Math.min(totalPages, parseInt(e.target.value) || 1)))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
@@ -296,7 +342,7 @@ const PdfAnalyzer = ({ file, onReset, onStartQuiz, outputLanguage }: PdfAnalyzer
                 min="1"
                 max={totalPages}
                 value={quizEndPage}
-                onChange={(e) => setQuizEndPage(parseInt(e.target.value) || 1)}
+                onChange={(e) => setQuizEndPage(Math.max(1, Math.min(totalPages, parseInt(e.target.value) || 1)))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
