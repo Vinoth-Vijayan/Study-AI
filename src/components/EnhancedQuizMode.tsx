@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, CheckCircle, AlertTriangle, Brain, Download, Trophy, Target, Image as ImageIcon } from "lucide-react";
-import { generateAdvancedQuestions, analyzeImage } from "@/services/geminiService";
 import { downloadPDF } from "@/utils/pdfUtils";
 import { extractTextFromPdfPage } from "@/utils/pdfReader";
 import { toast } from "sonner";
@@ -57,97 +56,20 @@ const EnhancedQuizMode = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [quizResult, setQuizResult] = useState<any>(null);
 
-  const startQuiz = async () => {
-    console.log("Starting quiz generation...", { pageRange, difficulty, questionsPerPage, isImageMode });
-    setIsGenerating(true);
-    
-    try {
-      let result;
-      
-      if (isImageMode && imageFiles.length > 0) {
-        console.log("Generating questions from images:", imageFiles.length);
-        // Generate questions from images
-        const allQuestions: QuizQuestion[] = [];
-        
-        for (let i = 0; i < imageFiles.length; i++) {
-          const imageFile = imageFiles[i];
-          console.log(`Analyzing image ${i + 1}...`);
-          
-          try {
-            const analysis = await analyzeImage(imageFile, outputLanguage);
-            console.log(`Image ${i + 1} analysis:`, analysis);
-            
-            // Generate questions based on image analysis
-            const imageQuestions = await generateQuestionsFromImageAnalysis(analysis, difficulty, questionsPerPage, i + 1);
-            allQuestions.push(...imageQuestions);
-          } catch (error) {
-            console.error(`Failed to analyze image ${i + 1}:`, error);
-            toast.error(`Failed to analyze image ${i + 1}. Skipping...`);
-          }
-        }
-        
-        result = { questions: allQuestions };
-      } else {
-        console.log("Generating questions from PDF pages:", pageRange);
-        // Generate questions from PDF pages
-        const allQuestions: QuizQuestion[] = [];
-        
-        for (let page = pageRange.start; page <= pageRange.end; page++) {
-          console.log(`Processing PDF page ${page}...`);
-          
-          try {
-            const pageText = await extractTextFromPdfPage(file, page);
-            if (pageText.trim()) {
-              const pageQuestions = await generateQuestionsFromPageText(
-                pageText, 
-                page, 
-                difficulty, 
-                questionsPerPage, 
-                outputLanguage
-              );
-              allQuestions.push(...pageQuestions);
-            }
-          } catch (error) {
-            console.error(`Failed to process page ${page}:`, error);
-            toast.error(`Failed to process page ${page}. Skipping...`);
-          }
-        }
-        
-        result = { questions: allQuestions };
-      }
-      
-      if (result.questions.length === 0) {
-        throw new Error("No questions were generated. Please try again.");
-      }
-      
-      console.log("Generated questions:", result.questions.length);
-      setQuestions(result.questions);
-      setQuizStarted(true);
-      toast.success(`Generated ${result.questions.length} questions successfully!`);
-    } catch (error) {
-      console.error("Failed to generate questions:", error);
-      toast.error("Failed to generate questions. Please try again.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
 
-  const generateQuestionsFromPageText = async (
-    pageText: string, 
-    pageNumber: number, 
-    difficulty: string, 
-    questionsPerPage: number, 
-    outputLanguage: string
-  ): Promise<QuizQuestion[]> => {
-    console.log(`Generating ${questionsPerPage} questions for page ${pageNumber}...`);
-    
+  const generateQuestionsFromText = async (pageText: string, pageNumber: number): Promise<QuizQuestion[]> => {
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide all questions and answers in Tamil language. Use Tamil script for all content."
+      : "Please provide all questions and answers in English language.";
+
     const prompt = `
 Based on this text content from page ${pageNumber} for TNPSC preparation, generate ${questionsPerPage} multiple choice questions:
 
 Content: ${pageText.substring(0, 3000)}
 
 Difficulty: ${difficulty}
-Language: ${outputLanguage}
+${languageInstruction}
 
 Generate questions with:
 - 4 options each (A, B, C, D)
@@ -171,8 +93,10 @@ Return as JSON array of questions with this exact structure:
 IMPORTANT: Return only valid JSON array, no other text.
 `;
 
+    console.log('Generating questions for page:', pageNumber);
+    
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -193,6 +117,8 @@ IMPORTANT: Return only valid JSON array, no other text.
       }
 
       const data = await response.json();
+      console.log('Gemini API response:', data);
+      
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (!content) {
@@ -210,15 +136,17 @@ IMPORTANT: Return only valid JSON array, no other text.
     }
   };
 
-  const generateQuestionsFromImageAnalysis = async (analysis: any, difficulty: string, questionsPerPage: number, imageNumber: number): Promise<QuizQuestion[]> => {
-    const prompt = `
-Based on this image analysis for TNPSC preparation, generate ${questionsPerPage} multiple choice questions:
+  const generateQuestionsFromImage = async (imageFile: File, imageNumber: number): Promise<QuizQuestion[]> => {
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide all questions and answers in Tamil language. Use Tamil script for all content."
+      : "Please provide all questions and answers in English language.";
 
-Topic: ${analysis.mainTopic}
-Key Points: ${analysis.studyPoints.map((point: any) => `${point.title}: ${point.description}`).join('\n')}
-TNPSC Categories: ${analysis.tnpscCategories?.join(', ')}
+    const prompt = `
+Analyze this image for TNPSC preparation and generate ${questionsPerPage} multiple choice questions:
 
 Difficulty: ${difficulty}
+${languageInstruction}
+
 Generate questions with:
 - 4 options each
 - TNPSC Group 1, 2, 4 exam style
@@ -238,26 +166,110 @@ Return as JSON array of questions with this structure:
 ]
 `;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        }
-      })
-    });
+    try {
+      const base64Data = await fileToBase64(imageFile);
+      const base64Content = base64Data.split(',')[1];
 
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleanedContent);
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: imageFile.type,
+                  data: base64Content
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          }
+        })
+      });
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      return JSON.parse(cleanedContent);
+    } catch (error) {
+      console.error(`Failed to generate questions for image ${imageNumber}:`, error);
+      throw error;
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const startQuiz = async () => {
+    console.log("Starting quiz generation...", { pageRange, difficulty, questionsPerPage, isImageMode });
+    setIsGenerating(true);
+    
+    try {
+      let allQuestions: QuizQuestion[] = [];
+      
+      if (isImageMode && imageFiles.length > 0) {
+        console.log("Generating questions from images:", imageFiles.length);
+        
+        for (let i = 0; i < imageFiles.length; i++) {
+          const imageFile = imageFiles[i];
+          console.log(`Processing image ${i + 1}...`);
+          
+          try {
+            const imageQuestions = await generateQuestionsFromImage(imageFile, i + 1);
+            allQuestions.push(...imageQuestions);
+            toast.success(`Generated questions for image ${i + 1}`);
+          } catch (error) {
+            console.error(`Failed to process image ${i + 1}:`, error);
+            toast.error(`Failed to process image ${i + 1}. Skipping...`);
+          }
+        }
+      } else {
+        console.log("Generating questions from PDF pages:", pageRange);
+        
+        for (let page = pageRange.start; page <= pageRange.end; page++) {
+          console.log(`Processing PDF page ${page}...`);
+          
+          try {
+            const pageText = await extractTextFromPdfPage(file, page);
+            if (pageText.trim()) {
+              const pageQuestions = await generateQuestionsFromText(pageText, page);
+              allQuestions.push(...pageQuestions);
+              toast.success(`Generated questions for page ${page}`);
+            }
+          } catch (error) {
+            console.error(`Failed to process page ${page}:`, error);
+            toast.error(`Failed to process page ${page}. Skipping...`);
+          }
+        }
+      }
+      
+      if (allQuestions.length === 0) {
+        throw new Error("No questions were generated. Please try again.");
+      }
+      
+      console.log("Generated questions:", allQuestions.length);
+      setQuestions(allQuestions);
+      setQuizStarted(true);
+      toast.success(`Generated ${allQuestions.length} questions successfully!`);
+    } catch (error) {
+      console.error("Failed to generate questions:", error);
+      toast.error("Failed to generate questions. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleAnswerSelect = (value: string) => {
