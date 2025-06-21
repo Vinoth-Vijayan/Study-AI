@@ -171,9 +171,11 @@ const StudyAssistant = () => {
     difficulty: string,
     questionsPerImage: number
   ) => {
+    console.log("Starting image quiz with:", { imageIndexes, difficulty, questionsPerImage });
+    
     // Convert image indexes to page range format for consistency
     setQuizConfig({ 
-      pageRange: { start: Math.min(...imageIndexes), end: Math.max(...imageIndexes) }, 
+      pageRange: { start: Math.min(...imageIndexes) + 1, end: Math.max(...imageIndexes) + 1 }, 
       difficulty, 
       questionsPerPage: questionsPerImage 
     });

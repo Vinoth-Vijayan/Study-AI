@@ -118,7 +118,22 @@ const ImageAnalyzer = ({ files, onReset, onStartQuiz, outputLanguage }: ImageAna
   };
 
   const handleStartQuiz = () => {
+    console.log("Starting quiz with configuration:", {
+      selectedImages,
+      quizDifficulty,
+      questionsPerImage,
+      filesLength: files.length
+    });
+    
     const imagesToQuiz = selectedImages.length > 0 ? selectedImages : Array.from({length: files.length}, (_, i) => i);
+    
+    console.log("Images to quiz:", imagesToQuiz);
+    
+    if (imagesToQuiz.length === 0) {
+      toast.error("No images selected for quiz. Please select at least one image.");
+      return;
+    }
+    
     onStartQuiz(imagesToQuiz, quizDifficulty, questionsPerImage);
   };
 
@@ -428,6 +443,7 @@ const ImageAnalyzer = ({ files, onReset, onStartQuiz, outputLanguage }: ImageAna
             <Button
               onClick={handleStartQuiz}
               className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 py-3 md:py-4"
+              disabled={files.length === 0}
             >
               <Brain className="h-4 w-4 mr-2" />
               Start Practice Quiz
