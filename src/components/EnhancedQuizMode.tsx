@@ -167,6 +167,7 @@ Return as JSON array of questions with this structure:
 `;
 
     try {
+      console.log(`Generating questions for image ${imageNumber}...`);
       const base64Data = await fileToBase64(imageFile);
       const base64Content = base64Data.split(',')[1];
 
@@ -194,10 +195,23 @@ Return as JSON array of questions with this structure:
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log(`Gemini API response for image ${imageNumber}:`, data);
+      
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) {
+        throw new Error("No content received from API");
+      }
+      
       const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleanedContent);
+      const questions = JSON.parse(cleanedContent);
+      
+      console.log(`Generated ${questions.length} questions for image ${imageNumber}`);
+      return questions;
     } catch (error) {
       console.error(`Failed to generate questions for image ${imageNumber}:`, error);
       throw error;
@@ -214,7 +228,7 @@ Return as JSON array of questions with this structure:
   };
 
   const startQuiz = async () => {
-    console.log("Starting quiz generation...", { pageRange, difficulty, questionsPerPage, isImageMode });
+    console.log("Starting quiz generation...", { pageRange, difficulty, questionsPerPage, isImageMode, imageFilesCount: imageFiles.length });
     setIsGenerating(true);
     
     try {
@@ -223,7 +237,11 @@ Return as JSON array of questions with this structure:
       if (isImageMode && imageFiles.length > 0) {
         console.log("Generating questions from images:", imageFiles.length);
         
-        for (let i = 0; i < imageFiles.length; i++) {
+        // Process the specific images based on pageRange
+        const startIndex = pageRange.start - 1;
+        const endIndex = pageRange.end - 1;
+        
+        for (let i = startIndex; i <= endIndex && i < imageFiles.length; i++) {
           const imageFile = imageFiles[i];
           console.log(`Processing image ${i + 1}...`);
           
@@ -368,6 +386,9 @@ Return as JSON array of questions with this structure:
   };
 
   if (!quizStarted) {
+    const itemCount = isImageMode ? (pageRange.end - pageRange.start + 1) : (pageRange.end - pageRange.start + 1);
+    const totalQuestions = itemCount * questionsPerPage;
+
     return (
       <Card className="p-4 md:p-8 text-center bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <div className="flex items-center gap-3 mb-6 justify-center">
@@ -384,18 +405,11 @@ Return as JSON array of questions with this structure:
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 md:p-6 rounded-lg mb-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-xl md:text-2xl font-bold text-blue-600">
-                {isImageMode ? imageFiles.length : (pageRange.end - pageRange.start + 1)}
-              </div>
+              <div className="text-xl md:text-2xl font-bold text-blue-600">{itemCount}</div>
               <div className="text-sm text-gray-600">{isImageMode ? 'Images' : 'Pages'}</div>
             </div>
             <div>
-              <div className="text-xl md:text-2xl font-bold text-green-600">
-                {isImageMode 
-                  ? imageFiles.length * questionsPerPage
-                  : (pageRange.end - pageRange.start + 1) * questionsPerPage
-                }
-              </div>
+              <div className="text-xl md:text-2xl font-bold text-green-600">{totalQuestions}</div>
               <div className="text-sm text-gray-600">Questions</div>
             </div>
             <div>
@@ -409,7 +423,7 @@ Return as JSON array of questions with this structure:
         </div>
 
         <p className="text-gray-600 mb-6 text-sm md:text-base">
-          Ready to test your knowledge on {isImageMode ? `${imageFiles.length} images` : `pages ${pageRange.start} to ${pageRange.end}`}?<br/>
+          Ready to test your knowledge on {isImageMode ? `images ${pageRange.start} to ${pageRange.end}` : `pages ${pageRange.start} to ${pageRange.end}`}?<br/>
           This {difficulty.replace('-', ' ')} level quiz will challenge your understanding of TNPSC concepts.
         </p>
 
@@ -460,7 +474,7 @@ Return as JSON array of questions with this structure:
             <div className="flex gap-2 justify-center mt-3 flex-wrap">
               {getDifficultyBadge(difficulty)}
               <Badge className="bg-blue-100 text-blue-700 text-xs md:text-sm">
-                {isImageMode ? `${imageFiles.length} Images` : `Pages ${pageRange.start}-${pageRange.end}`}
+                {isImageMode ? `Images ${pageRange.start}-${pageRange.end}` : `Pages ${pageRange.start}-${pageRange.end}`}
               </Badge>
             </div>
           </div>
