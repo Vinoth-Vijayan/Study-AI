@@ -12,6 +12,7 @@ interface AnalysisResultsProps {
   onReset: () => void;
   selectedFiles: File[];
   onGenerateQuestions: () => void;
+  onStartQuiz: () => void;
   isGeneratingQuestions: boolean;
 }
 
@@ -20,6 +21,7 @@ const AnalysisResults = ({
   onReset, 
   selectedFiles, 
   onGenerateQuestions, 
+  onStartQuiz,
   isGeneratingQuestions 
 }: AnalysisResultsProps) => {
   const handleDownloadAnalysis = async () => {
