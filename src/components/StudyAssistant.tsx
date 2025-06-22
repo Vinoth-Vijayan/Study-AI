@@ -24,7 +24,22 @@ export interface QuestionResult {
   summary: string;
   keyPoints: string[];
   difficulty: string;
+  totalQuestions: number;
   pageRange?: { start: number; end: number };
+}
+
+export interface AnalysisResult {
+  keyPoints: string[];
+  summary: string;
+  tnpscRelevance: string;
+  studyPoints: Array<{
+    title: string;
+    description: string;
+    importance: string;
+    tnpscRelevance: string;
+  }>;
+  tnpscCategories: string[];
+  page?: number;
 }
 
 const StudyAssistant = () => {

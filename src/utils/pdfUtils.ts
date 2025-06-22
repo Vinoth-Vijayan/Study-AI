@@ -4,7 +4,7 @@ import jsPDF from 'jspdf';
 export interface PDFContent {
   title: string;
   content: any[];
-  type: 'keypoints' | 'questions';
+  type: 'keypoints' | 'questions' | 'analysis' | 'quiz-results';
 }
 
 export const downloadPDF = async ({ title, content, type }: PDFContent) => {
@@ -24,7 +24,7 @@ export const downloadPDF = async ({ title, content, type }: PDFContent) => {
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
 
-  if (type === 'keypoints') {
+  if (type === 'keypoints' || type === 'analysis') {
     content.forEach((analysis, index) => {
       // Check if we need a new page
       if (yPosition > pageHeight - 50) {
@@ -32,42 +32,49 @@ export const downloadPDF = async ({ title, content, type }: PDFContent) => {
         yPosition = margin;
       }
 
-      // Page header
+      // File name header
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`Page ${analysis.page} - Key Points`, margin, yPosition);
-      yPosition += lineHeight;
-
-      // TNPSC Relevance
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('TNPSC Relevance:', margin, yPosition);
-      yPosition += lineHeight;
-      
-      pdf.setFont('helvetica', 'normal');
-      const relevanceLines = pdf.splitTextToSize(analysis.tnpscRelevance, pageWidth - 2 * margin);
-      pdf.text(relevanceLines, margin, yPosition);
-      yPosition += relevanceLines.length * lineHeight + 5;
-
-      // Key Points
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Key Study Points:', margin, yPosition);
-      yPosition += lineHeight;
-
-      pdf.setFont('helvetica', 'normal');
-      analysis.keyPoints.forEach((point: string, pointIndex: number) => {
-        const pointLines = pdf.splitTextToSize(`${pointIndex + 1}. ${point}`, pageWidth - 2 * margin - 10);
-        pdf.text(pointLines, margin + 10, yPosition);
-        yPosition += pointLines.length * lineHeight + 2;
-      });
+      pdf.text(`File: ${analysis.fileName || `Analysis ${index + 1}`}`, margin, yPosition);
+      yPosition += lineHeight * 1.5;
 
       // Summary
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Summary:', margin, yPosition);
-      yPosition += lineHeight;
+      if (analysis.summary) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Summary:', margin, yPosition);
+        yPosition += lineHeight;
+        
+        pdf.setFont('helvetica', 'normal');
+        const summaryLines = pdf.splitTextToSize(analysis.summary, pageWidth - 2 * margin);
+        pdf.text(summaryLines, margin, yPosition);
+        yPosition += summaryLines.length * lineHeight + 5;
+      }
 
-      pdf.setFont('helvetica', 'normal');
-      const summaryLines = pdf.splitTextToSize(analysis.summary, pageWidth - 2 * margin);
-      pdf.text(summaryLines, margin, yPosition);
-      yPosition += summaryLines.length * lineHeight + 15;
+      // Key Points
+      if (analysis.keyPoints && analysis.keyPoints.length > 0) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Key Study Points:', margin, yPosition);
+        yPosition += lineHeight;
+
+        pdf.setFont('helvetica', 'normal');
+        analysis.keyPoints.forEach((point: string, pointIndex: number) => {
+          const pointLines = pdf.splitTextToSize(`${pointIndex + 1}. ${point}`, pageWidth - 2 * margin - 10);
+          pdf.text(pointLines, margin + 10, yPosition);
+          yPosition += pointLines.length * lineHeight + 2;
+        });
+      }
+
+      // TNPSC Categories
+      if (analysis.tnpscCategories && analysis.tnpscCategories.length > 0) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('TNPSC Categories:', margin, yPosition);
+        yPosition += lineHeight;
+        
+        pdf.setFont('helvetica', 'normal');
+        const categoriesText = analysis.tnpscCategories.join(', ');
+        const categoryLines = pdf.splitTextToSize(categoriesText, pageWidth - 2 * margin);
+        pdf.text(categoryLines, margin, yPosition);
+        yPosition += categoryLines.length * lineHeight + 15;
+      }
     });
   } else if (type === 'questions') {
     content.forEach((question, index) => {
@@ -79,7 +86,7 @@ export const downloadPDF = async ({ title, content, type }: PDFContent) => {
 
       // Question number and difficulty
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`Question ${index + 1} (${question.difficulty.toUpperCase()})`, margin, yPosition);
+      pdf.text(`Question ${index + 1} (${question.difficulty?.toUpperCase() || 'MEDIUM'})`, margin, yPosition);
       yPosition += lineHeight;
 
       // Question text
@@ -108,6 +115,43 @@ export const downloadPDF = async ({ title, content, type }: PDFContent) => {
       }
 
       yPosition += 10; // Space between questions
+    });
+  } else if (type === 'quiz-results') {
+    const result = content as any;
+    
+    // Quiz Summary
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Score: ${result.score}/${result.totalQuestions} (${result.percentage}%)`, margin, yPosition);
+    yPosition += lineHeight * 2;
+
+    // Answer Review
+    pdf.text('Answer Review:', margin, yPosition);
+    yPosition += lineHeight * 1.5;
+
+    result.answers?.forEach((answer: any, index: number) => {
+      if (yPosition > pageHeight - 60) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Q${index + 1}: ${answer.isCorrect ? '✓ Correct' : '✗ Incorrect'}`, margin, yPosition);
+      yPosition += lineHeight;
+
+      pdf.setFont('helvetica', 'normal');
+      const questionLines = pdf.splitTextToSize(answer.question.question, pageWidth - 2 * margin);
+      pdf.text(questionLines, margin, yPosition);
+      yPosition += questionLines.length * lineHeight + 3;
+
+      pdf.text(`Your Answer: ${answer.userAnswer}`, margin, yPosition);
+      yPosition += lineHeight;
+      
+      if (!answer.isCorrect) {
+        pdf.text(`Correct Answer: ${answer.correctAnswer}`, margin, yPosition);
+        yPosition += lineHeight;
+      }
+
+      yPosition += 5;
     });
   }
 

@@ -1,27 +1,45 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { useState } from "react";
+import NavigationHeader from "./components/NavigationHeader";
+import StudyAssistant from "./components/StudyAssistant";
+import StudyHistory from "./components/StudyHistory";
+import UserProfile from "./components/UserProfile";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [currentView, setCurrentView] = useState("study");
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case "history":
+        return <StudyHistory />;
+      case "profile":
+        return <UserProfile />;
+      default:
+        return <StudyAssistant />;
+    }
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+          <NavigationHeader 
+            currentView={currentView} 
+            onViewChange={setCurrentView}
+          />
+          {renderCurrentView()}
+        </div>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
