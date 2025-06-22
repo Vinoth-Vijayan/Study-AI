@@ -2,209 +2,193 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, BookOpen, Users, Trophy, Star, ArrowRight, CheckCircle } from "lucide-react";
+import { BookOpen, Brain, FileText, Users, MessageCircle, Target, Award, TrendingUp } from "lucide-react";
 import AuthModal from "./AuthModal";
-import { toast } from "sonner";
 
 const LandingPage = () => {
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
-  const features = [
-    {
-      icon: Brain,
-      title: "AI-Powered Analysis",
-      description: "Upload your study materials and get instant AI analysis with key points and summaries"
-    },
-    {
-      icon: BookOpen,
-      title: "Interactive Quizzes",
-      description: "Generate practice questions automatically from your study content"
-    },
-    {
-      icon: Users,
-      title: "Arivu Chatbot",
-      description: "24/7 TNPSC expert chatbot to answer your questions and clarify doubts"
-    },
-    {
-      icon: Trophy,
-      title: "Progress Tracking",
-      description: "Track your study sessions and quiz performance over time"
-    }
-  ];
-
-  const benefits = [
-    "Instant analysis of study materials",
-    "Generate unlimited practice questions",
-    "Tamil and English language support",
-    "Mobile-friendly design",
-    "Study history tracking",
-    "Downloadable reports"
-  ];
+  const handleAuthClick = (mode: "login" | "signup") => {
+    setAuthMode(mode);
+    setShowAuthModal(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-                <Brain className="h-6 w-6 text-white" />
+                <BookOpen className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Ram's AI
+                TNPSC Study Assistant
               </h1>
             </div>
-            <Button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              Get Started
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => handleAuthClick("login")}
+                className="hidden md:flex"
+              >
+                Login
+              </Button>
+              <Button 
+                onClick={() => handleAuthClick("signup")}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                Get Started
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Master TNPSC
-            </span>
-            <br />
-            <span className="text-gray-800">with AI Power</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Transform your TNPSC preparation with AI-powered study analysis, 
-            interactive quizzes, and personalized learning assistance.
+      <section className="py-20 px-4">
+        <div className="container mx-auto text-center">
+          <h2 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            Master TNPSC Exams with AI
+          </h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Transform your TNPSC preparation with our intelligent study assistant. 
+            Analyze documents, generate questions, and get personalized guidance from Arivu - your AI study companion.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              onClick={() => setIsAuthModalOpen(true)}
+            <Button 
               size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8 py-4 text-lg"
+              onClick={() => handleAuthClick("signup")}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-3"
             >
-              Start Learning Today
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 text-lg"
-            >
-              Watch Demo
+              Start Learning Now
             </Button>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            Everything You Need to Succeed
-          </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Comprehensive TNPSC preparation tools powered by advanced AI technology
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <Card key={index} className="p-6 text-center hover:shadow-xl transition-shadow border-0 bg-white/80 backdrop-blur-sm">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-4">
-                <feature.icon className="h-8 w-8 text-blue-600" />
+      <section className="py-16 px-4 bg-white/50">
+        <div className="container mx-auto">
+          <h3 className="text-3xl font-bold text-center mb-12 text-gray-800">
+            Everything You Need to Ace TNPSC
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+              <div className="p-3 bg-blue-100 rounded-lg w-fit mb-4">
+                <FileText className="h-6 w-6 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                {feature.title}
-              </h3>
+              <h4 className="text-xl font-semibold mb-3 text-gray-800">Smart Document Analysis</h4>
               <p className="text-gray-600">
-                {feature.description}
+                Upload images or PDFs and get instant analysis with key points, summaries, and TNPSC relevance scores.
               </p>
             </Card>
-          ))}
-        </div>
-      </section>
 
-      {/* Benefits Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">
-              Why Choose Ram's AI?
-            </h2>
-            <p className="text-xl text-gray-600 mb-8">
-              Join thousands of TNPSC aspirants who are already using AI to accelerate their preparation
-            </p>
-            <div className="space-y-4">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
-                  <span className="text-gray-700">{benefit}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl p-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
-                ))}
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+              <div className="p-3 bg-purple-100 rounded-lg w-fit mb-4">
+                <Brain className="h-6 w-6 text-purple-600" />
               </div>
-              <blockquote className="text-lg text-gray-800 mb-4 italic">
-                "Ram's AI completely transformed my TNPSC preparation. The AI analysis and quiz generation saved me hours of study time!"
-              </blockquote>
-              <cite className="text-gray-600">- Successful TNPSC Candidate</cite>
-            </div>
+              <h4 className="text-xl font-semibold mb-3 text-gray-800">AI Question Generator</h4>
+              <p className="text-gray-600">
+                Generate practice questions based on your study materials with customizable difficulty levels.
+              </p>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+              <div className="p-3 bg-green-100 rounded-lg w-fit mb-4">
+                <MessageCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-3 text-gray-800">Arivu - AI Chatbot</h4>
+              <p className="text-gray-600">
+                Get instant answers to your questions, clarify doubts, and receive personalized study guidance.
+              </p>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+              <div className="p-3 bg-indigo-100 rounded-lg w-fit mb-4">
+                <Target className="h-6 w-6 text-indigo-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-3 text-gray-800">Interactive Quizzes</h4>
+              <p className="text-gray-600">
+                Test your knowledge with interactive quizzes and track your progress over time.
+              </p>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+              <div className="p-3 bg-yellow-100 rounded-lg w-fit mb-4">
+                <Award className="h-6 w-6 text-yellow-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-3 text-gray-800">Study History</h4>
+              <p className="text-gray-600">
+                Keep track of your learning journey with detailed study history and performance analytics.
+              </p>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
+              <div className="p-3 bg-red-100 rounded-lg w-fit mb-4">
+                <TrendingUp className="h-6 w-6 text-red-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-3 text-gray-800">Progress Tracking</h4>
+              <p className="text-gray-600">
+                Monitor your improvement with detailed analytics and personalized recommendations.
+              </p>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Transform Your TNPSC Preparation?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of successful candidates who chose Ram's AI for their TNPSC journey
-          </p>
-          <Button
-            onClick={() => setIsAuthModalOpen(true)}
-            size="lg"
-            className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold"
-          >
-            Start Your Free Trial
-          </Button>
+      <section className="py-20 px-4">
+        <div className="container mx-auto text-center">
+          <Card className="p-8 md:p-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+            <h3 className="text-3xl md:text-4xl font-bold mb-4">
+              Ready to Transform Your TNPSC Preparation?
+            </h3>
+            <p className="text-xl mb-8 opacity-90">
+              Join thousands of successful candidates who've achieved their dreams with our AI-powered study assistant.
+            </p>
+            <Button 
+              size="lg"
+              onClick={() => handleAuthClick("signup")}
+              className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold"
+            >
+              Start Your Journey Today
+            </Button>
+          </Card>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-3 mb-8">
+      <footer className="bg-gray-900 text-white py-12 px-4">
+        <div className="container mx-auto text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-              <Brain className="h-6 w-6 text-white" />
+              <BookOpen className="h-6 w-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold">Ram's AI</h3>
+            <h4 className="text-2xl font-bold">TNPSC Study Assistant</h4>
           </div>
-          <div className="text-center text-gray-400">
-            <p>&copy; 2024 Ram's AI. All rights reserved.</p>
-            <p className="mt-2">Empowering TNPSC aspirants with AI technology</p>
+          <p className="text-gray-400 mb-6">
+            Empowering TNPSC aspirants with AI-driven learning solutions
+          </p>
+          <div className="flex justify-center gap-6 text-sm text-gray-400">
+            <span>© 2024 TNPSC Study Assistant</span>
+            <span>•</span>
+            <span>Powered by AI</span>
           </div>
         </div>
       </footer>
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={() => {
-          toast.success("Welcome to Ram's AI!");
-          setIsAuthModalOpen(false);
-        }}
-      />
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          mode={authMode}
+          onModeChange={setAuthMode}
+        />
+      )}
     </div>
   );
 };

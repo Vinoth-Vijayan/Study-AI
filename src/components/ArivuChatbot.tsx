@@ -23,7 +23,7 @@ const ArivuChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Hello! I'm Arivu, your TNPSC study companion. I can help you understand concepts, answer questions, and analyze images or documents. How can I assist you today?",
+      content: "Hello! I'm Arivu, your AI assistant. I can help you with TNPSC studies, answer general questions, solve math problems, and analyze images or documents. How can I assist you today?",
       sender: "arivu",
       timestamp: new Date()
     }
@@ -41,14 +41,14 @@ const ArivuChatbot = () => {
     if (language === "tamil") {
       setMessages(prev => prev.length === 1 ? [{
         id: "1",
-        content: "வணக்கம்! நான் அறிவு, உங்கள் தமிழ்நாடு பொதுச் சேவை ஆணையம் படிப்பு துணைவன். நான் கருத்துகளை புரிந்துகொள்ள, கேள்விகளுக்கு பதிலளிக்க, படங்கள் அல்லது ஆவணங்களை பகுப்பாய்வு செய்ய உதவ முடியும். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+        content: "வணக்கம்! நான் அறிவு, உங்கள் AI உதவியாளர். நான் தமிழ்நாடு பொதுச் சேவை ஆணையம் படிப்பு, பொதுக் கேள்விகள், கணித சிக்கல்கள், மற்றும் படங்கள் அல்லது ஆவணங்களை பகுப்பாய்வு செய்ய உதவ முடியும். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
         sender: "arivu",
         timestamp: new Date()
       }] : prev);
     } else {
       setMessages(prev => prev.length === 1 ? [{
         id: "1",
-        content: "Hello! I'm Arivu, your TNPSC study companion. I can help you understand concepts, answer questions, and analyze images or documents. How can I assist you today?",
+        content: "Hello! I'm Arivu, your AI assistant. I can help you with TNPSC studies, answer general questions, solve math problems, and analyze images or documents. How can I assist you today?",
         sender: "arivu",
         timestamp: new Date()
       }] : prev);
@@ -133,19 +133,26 @@ const ArivuChatbot = () => {
         ? "Please respond in Tamil language using Tamil script."
         : "Please respond in English language.";
 
-      let prompt = `You are 'Arivu', a friendly and highly knowledgeable TNPSC exam expert and general AI assistant. Your purpose is to help students preparing for TNPSC Group 1, 2, and 4 exams, but you can also help with general questions, math problems, and analysis of uploaded files.
+      let prompt = `You are 'Arivu', a friendly and highly knowledgeable AI assistant. You can help with a wide variety of topics including:
 
-Your rules are:
-1. Your primary expertise is the official TNPSC syllabus, focusing on Indian Polity, History, Geography, Economy, Tamil Nadu History & Culture, and Current Affairs.
-2. You can also help with general knowledge, math problems, and analysis of uploaded documents/images.
-3. Always provide accurate, concise, and easy-to-understand answers.
-4. If you don't know the answer to a specific question, admit it honestly and suggest where the user might find the information.
-5. ${languageInstruction}
-6. Keep the conversation encouraging and supportive.
-7. If analyzing images or documents, focus on educational content and provide detailed explanations.
+1. TNPSC (Tamil Nadu Public Service Commission) exam preparation - your primary expertise
+2. General knowledge and current affairs
+3. Math problems and calculations
+4. Science and technology questions
+5. History, geography, and social studies
+6. Analysis of uploaded documents and images
+7. Any other questions users might have
 
-Recent study history of the user:
-${studyHistory}
+Your approach:
+- Be helpful, accurate, and conversational
+- For TNPSC topics, focus on exam-relevant content
+- For general questions, provide clear and comprehensive answers
+- When analyzing images or documents, provide detailed explanations
+- Always be encouraging and supportive
+- ${languageInstruction}
+- If you don't know something, admit it honestly
+
+${studyHistory ? `User's recent study history:\n${studyHistory}\n` : ''}
 
 Conversation history:
 ${conversationHistory}
@@ -162,7 +169,7 @@ User's new message: ${inputMessage}`;
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1500,
+          maxOutputTokens: 2000,
         }
       };
 
@@ -181,7 +188,7 @@ User's new message: ${inputMessage}`;
         }
       }
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,9 +253,9 @@ User's new message: ${inputMessage}`;
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                    Arivu - TNPSC Chat Assistant
+                    Arivu - AI Assistant
                   </h1>
-                  <p className="text-gray-600">Ask me anything about TNPSC syllabus</p>
+                  <p className="text-gray-600">Your intelligent study companion</p>
                 </div>
               </div>
               
@@ -383,8 +390,8 @@ User's new message: ${inputMessage}`;
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={language === "tamil" 
-                    ? "அறிவுவிடம் தமிழ்நாடு பொதுச் சேவை ஆணையம் தலைப்புகளைப் பற்றி கேளுங்கள்..."
-                    : "Ask Arivu about TNPSC topics..."
+                    ? "எதைப் பற்றி கேட்க விரும்புகிறீர்கள்?"
+                    : "Ask me anything..."
                   }
                   className="flex-1"
                   disabled={isLoading}
