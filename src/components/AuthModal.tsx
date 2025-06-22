@@ -49,12 +49,19 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     try {
       setupRecaptcha();
       const formattedPhone = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+      
+      // Note: This will fail until you enable Phone Authentication in Firebase Console
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
       setConfirmationResult(confirmation);
       toast.success("OTP sent successfully!");
     } catch (error: any) {
       console.error("OTP sending error:", error);
-      toast.error(error.message || "Failed to send OTP");
+      
+      if (error.code === 'auth/configuration-not-found') {
+        toast.error("Phone authentication not configured. Please enable it in Firebase Console.");
+      } else {
+        toast.error(error.message || "Failed to sen OTP. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +105,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center">
-              Welcome to TNPSC Study AI
+              Welcome to Ram's AI
             </DialogTitle>
             <DialogDescription className="text-center">
               Sign in with your phone number to save your progress
@@ -135,6 +142,10 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                   >
                     {isLoading ? "Sending OTP..." : "Send OTP"}
                   </Button>
+                  
+                  <div className="text-center text-xs text-red-600">
+                    Note: Phone authentication needs to be enabled in Firebase Console first
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">

@@ -47,7 +47,7 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  TNPSC Study AI
+                  Ram's AI
                 </h1>
               </div>
             </div>
@@ -104,7 +104,7 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="md:hidden"
+                className="md:hidden text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -140,7 +140,7 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={() => {
-          toast.success("Welcome to TNPSC Study AI!");
+          toast.success("Welcome to Ram's AI!");
         }}
       />
     </>
