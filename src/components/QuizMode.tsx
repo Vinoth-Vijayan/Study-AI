@@ -17,7 +17,7 @@ const QuizMode = ({ result, onReset }: QuizModeProps) => {
       <div className="container mx-auto px-4 py-6">
         <Card className="p-6 max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold mb-4">Quiz Mode</h2>
-          <p className="text-gray-600 mb-6">Questions: {result.questions.length}</p>
+          <p className="text-gray-600 mb-6">Questions: {result.questions?.length || 0}</p>
           <Button onClick={onReset}>Back to Upload</Button>
         </Card>
       </div>

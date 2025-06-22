@@ -1,19 +1,37 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, Image, Brain, Zap, BookOpen, Target, Sparkles } from "lucide-react";
+import { Upload, FileText, Image, Settings, Languages, Brain, Zap } from "lucide-react";
+import { analyzeImage, analyzeMultipleImages } from "@/services/geminiService";
 import { toast } from "sonner";
+import AnalysisResults from "./AnalysisResults";
+import QuestionResults from "./QuestionResults";
 import ModernQuizMode from "./ModernQuizMode";
 import QuickAnalysisMode from "./QuickAnalysisMode";
+
+export interface AnalysisResult {
+  keyPoints: string[];
+  summary: string;
+  tnpscRelevance: string;
+  studyPoints: StudyPoint[];
+  tnpscCategories: string[];
+  language?: string;
+  mainTopic?: string;
+}
+
+export interface StudyPoint {
+  title: string;
+  description: string;
+  importance: "high" | "medium" | "low";
+  tnpscRelevance?: string;
+}
 
 export interface Question {
   question: string;
   options?: string[];
-  answer?: string;
-  type: "mcq" | "short_answer" | "true_false";
+  answer: string;
+  type: "mcq" | "true_false" | "short_answer";
   difficulty: string;
   tnpscGroup: string;
   explanation?: string;
@@ -24,269 +42,279 @@ export interface QuestionResult {
   summary: string;
   keyPoints: string[];
   difficulty: string;
-  totalQuestions: number;
-  pageRange?: { start: number; end: number };
-}
-
-export interface AnalysisResult {
-  keyPoints: string[];
-  summary: string;
-  tnpscRelevance: string;
-  studyPoints: Array<{
-    title: string;
-    description: string;
-    importance: string;
-    tnpscRelevance: string;
-  }>;
-  tnpscCategories: string[];
-  page?: number;
+  totalQuestions?: number;
 }
 
 const StudyAssistant = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [currentMode, setCurrentMode] = useState<'upload' | 'analysis' | 'quiz'>('upload');
-  const [analysisResult, setAnalysisResult] = useState<QuestionResult | null>(null);
-  const [difficulty, setDifficulty] = useState<string>("medium");
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
+  const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
+  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis">("upload");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [difficulty, setDifficulty] = useState("medium");
   const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const validFiles = files.filter(file => 
-      file.type === 'application/pdf' || file.type.startsWith('image/')
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
+    
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(file => 
+      file.type.startsWith('image/') || file.type === 'application/pdf'
     );
     
-    if (validFiles.length !== files.length) {
-      toast.error("Please upload only PDF or image files");
+    if (validFiles.length !== fileArray.length) {
+      toast.error("Only image files (PNG, JPG, etc.) and PDF files are supported");
     }
     
-    if (validFiles.length > 0) {
-      setSelectedFiles(validFiles);
-      toast.success(`${validFiles.length} file(s) uploaded successfully!`);
-    }
+    setSelectedFiles(validFiles);
   };
 
-  const handleStartAnalysis = () => {
+  const analyzeFiles = async () => {
     if (selectedFiles.length === 0) {
-      toast.error("Please upload files first");
+      toast.error("Please select files to analyze");
       return;
     }
-    setCurrentMode('analysis');
+
+    setIsAnalyzing(true);
+    try {
+      const results: AnalysisResult[] = [];
+      
+      for (const file of selectedFiles) {
+        if (file.type.startsWith('image/')) {
+          const result = await analyzeImage(file, outputLanguage);
+          results.push({
+            ...result,
+            language: outputLanguage,
+            mainTopic: result.studyPoints?.[0]?.title || "Study Material"
+          });
+        }
+      }
+      
+      setAnalysisResults(results);
+      setCurrentView("analysis");
+      toast.success("Analysis completed successfully!");
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast.error("Failed to analyze files. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const handleStartQuiz = (result: QuestionResult) => {
-    setAnalysisResult(result);
-    setCurrentMode('quiz');
+  const generateQuestions = async () => {
+    if (analysisResults.length === 0) return;
+    
+    setIsGeneratingQuestions(true);
+    try {
+      const result = await analyzeMultipleImages(selectedFiles, difficulty, outputLanguage);
+      setQuestionResult({
+        ...result,
+        totalQuestions: result.questions?.length || 0
+      });
+      setCurrentView("questions");
+      toast.success("Questions generated successfully!");
+    } catch (error) {
+      console.error("Question generation error:", error);
+      toast.error("Failed to generate questions. Please try again.");
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
   };
 
-  const handleReset = () => {
+  const startQuickAnalysis = () => {
+    if (selectedFiles.length === 0) {
+      toast.error("Please select files first");
+      return;
+    }
+    setCurrentView("quick-analysis");
+  };
+
+  const handleQuickAnalysisQuiz = (result: QuestionResult) => {
+    setQuestionResult({
+      ...result,
+      totalQuestions: result.questions?.length || 0
+    });
+    setCurrentView("quiz");
+  };
+
+  const resetToUpload = () => {
     setSelectedFiles([]);
-    setCurrentMode('upload');
-    setAnalysisResult(null);
+    setAnalysisResults([]);
+    setQuestionResult(null);
+    setCurrentView("upload");
   };
 
-  const getFileTypeStats = () => {
-    const pdfs = selectedFiles.filter(f => f.type === 'application/pdf').length;
-    const images = selectedFiles.filter(f => f.type.startsWith('image/')).length;
-    return { pdfs, images };
-  };
-
-  if (currentMode === 'quiz' && analysisResult) {
-    return (
-      <ModernQuizMode
-        result={analysisResult}
-        onReset={handleReset}
-        onBackToAnalysis={() => setCurrentMode('analysis')}
-        difficulty={difficulty}
-        outputLanguage={outputLanguage}
-      />
-    );
-  }
-
-  if (currentMode === 'analysis') {
+  if (currentView === "quick-analysis") {
     return (
       <QuickAnalysisMode
         files={selectedFiles}
         difficulty={difficulty}
         outputLanguage={outputLanguage}
-        onStartQuiz={handleStartQuiz}
-        onReset={handleReset}
+        onStartQuiz={handleQuickAnalysisQuiz}
+        onReset={resetToUpload}
       />
     );
   }
 
-  const { pdfs, images } = getFileTypeStats();
+  if (currentView === "quiz" && questionResult) {
+    return (
+      <ModernQuizMode
+        result={questionResult}
+        onReset={resetToUpload}
+        onBackToAnalysis={() => setCurrentView("analysis")}
+        difficulty={difficulty}
+        outputLanguage={outputLanguage}
+      />
+    );
+  }
+
+  if (currentView === "questions" && questionResult) {
+    return (
+      <QuestionResults
+        result={questionResult}
+        onReset={resetToUpload}
+        selectedFiles={selectedFiles}
+      />
+    );
+  }
+
+  if (currentView === "analysis" && analysisResults.length > 0) {
+    return (
+      <AnalysisResults
+        result={analysisResults[0]}
+        onReset={resetToUpload}
+        selectedFiles={selectedFiles}
+        onGenerateQuestions={generateQuestions}
+        isGeneratingQuestions={isGeneratingQuestions}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="container mx-auto px-4 py-6 md:py-12">
-        <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-xl">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full">
                 <Brain className="h-8 w-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  TNPSC Study Assistant
-                </h1>
-                <p className="text-gray-600 mt-2">Smart AI-powered study companion for competitive exams</p>
-              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                TNPSC Study AI
+              </h1>
             </div>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Upload your study materials and get AI-powered analysis, key points, and practice questions for TNPSC preparation
+            </p>
           </div>
 
-          {/* Settings */}
-          <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-xl border-0">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Target className="h-5 w-5 text-blue-600" />
-                Study Preferences
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty Level</label>
-                  <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">🟢 Easy - Basic concepts</SelectItem>
-                      <SelectItem value="medium">🟡 Medium - Standard level</SelectItem>
-                      <SelectItem value="hard">🔴 Hard - Advanced topics</SelectItem>
-                      <SelectItem value="very-hard">⚫ Expert - Challenging</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Output Language</label>
-                  <Select value={outputLanguage} onValueChange={(value: "english" | "tamil") => setOutputLanguage(value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="english">🇬🇧 English</SelectItem>
-                      <SelectItem value="tamil">🇮🇳 Tamil</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* File Upload */}
-          <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl border-0">
+          <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-2xl border-0 mb-8">
             <div className="space-y-6">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <Upload className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-xl font-semibold text-gray-800">Upload Study Materials</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Difficulty Level
+                  </label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className="w-full p-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                    <option value="very-hard">Very Hard</option>
+                  </select>
                 </div>
-                <p className="text-gray-600">Upload PDFs and images for AI-powered analysis and quiz generation</p>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Output Language
+                  </label>
+                  <select
+                    value={outputLanguage}
+                    onChange={(e) => setOutputLanguage(e.target.value as "english" | "tamil")}
+                    className="w-full p-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="english">English</option>
+                    <option value="tamil">தமிழ் (Tamil)</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="border-2 border-dashed border-blue-300 rounded-2xl p-8 hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
                 <input
                   type="file"
                   multiple
-                  accept=".pdf,image/*"
-                  onChange={handleFileUpload}
+                  accept="image/*,application/pdf"
+                  onChange={(e) => handleFileSelect(e.target.files)}
                   className="hidden"
                   id="file-upload"
                 />
-                <label htmlFor="file-upload" className="cursor-pointer block">
-                  <div className="text-center space-y-4">
-                    <div className="flex justify-center gap-4">
-                      <div className="p-3 bg-blue-100 rounded-full">
-                        <FileText className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div className="p-3 bg-green-100 rounded-full">
-                        <Image className="h-6 w-6 text-green-600" />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-lg font-medium text-gray-700">
-                        Drop files here or click to browse
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Supports PDF documents and image files (JPG, PNG, etc.)
-                      </p>
-                    </div>
-                  </div>
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-700 mb-2">
+                    Upload Your Study Materials
+                  </p>
+                  <p className="text-gray-500">
+                    Images (PNG, JPG) and PDF files supported
+                  </p>
                 </label>
               </div>
 
               {selectedFiles.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="h-4 w-4 text-green-600" />
-                        <span className="font-medium text-green-800">Files Ready for Analysis</span>
-                      </div>
-                      <div className="flex gap-4 text-sm text-green-700">
-                        {pdfs > 0 && (
-                          <div className="flex items-center gap-1">
-                            <FileText className="h-4 w-4" />
-                            <span>{pdfs} PDF{pdfs > 1 ? 's' : ''}</span>
-                          </div>
-                        )}
-                        {images > 0 && (
-                          <div className="flex items-center gap-1">
-                            <Image className="h-4 w-4" />
-                            <span>{images} Image{images > 1 ? 's' : ''}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <h3 className="font-semibold text-gray-800">
+                    Selected Files ({selectedFiles.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {selectedFiles.map((file, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        {file.type === 'application/pdf' ? (
-                          <FileText className="h-4 w-4 text-red-600" />
+                        {file.type.startsWith('image/') ? (
+                          <Image className="h-5 w-5 text-blue-600" />
                         ) : (
-                          <Image className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-5 w-5 text-red-600" />
                         )}
-                        <span className="text-sm text-gray-700 truncate flex-1">{file.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {(file.size / 1024 / 1024).toFixed(1)}MB
-                        </Badge>
+                        <span className="text-sm text-gray-700 truncate">
+                          {file.name}
+                        </span>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <Button
+                      onClick={analyzeFiles}
+                      disabled={isAnalyzing}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-lg font-semibold"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Settings className="h-5 w-5 mr-3" />
+                          Detailed Analysis
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={startQuickAnalysis}
+                      variant="outline"
+                      className="flex-1 border-2 border-green-500 text-green-600 hover:bg-green-50 py-6 text-lg font-semibold"
+                    >
+                      <Zap className="h-5 w-5 mr-3" />
+                      Quick Quiz
+                    </Button>
                   </div>
                 </div>
               )}
             </div>
           </Card>
-
-          {/* Action Buttons */}
-          {selectedFiles.length > 0 && (
-            <Card className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 shadow-xl border-0">
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={handleStartAnalysis}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-                  size="lg"
-                >
-                  <Zap className="h-5 w-5 mr-3" />
-                  Start Smart Analysis
-                </Button>
-                
-                <Button
-                  onClick={handleReset}
-                  variant="outline"
-                  className="px-8 py-6 text-lg font-semibold border-2 hover:bg-gray-50"
-                  size="lg"
-                >
-                  <BookOpen className="h-5 w-5 mr-3" />
-                  Clear & Restart
-                </Button>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
     </div>

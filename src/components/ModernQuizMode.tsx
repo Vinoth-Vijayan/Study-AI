@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -155,7 +154,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
     try {
       await downloadPDF({
         title: `TNPSC Quiz Results - ${difficulty.toUpperCase()}`,
-        content: quizResult,
+        content: quizResult?.answers || [],
         type: 'quiz-results'
       });
       toast.success("Quiz results downloaded successfully!");
@@ -360,7 +359,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                 </Button>
                 
                 <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-full bg-gradient-to-r ${getDifficultyColor(difficulty)} shadow-lg`}>
+                  <div className={`p-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg`}>
                     <Brain className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -377,21 +376,6 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
-
-              <div className="grid grid-cols-10 gap-1">
-                {questions.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-2 rounded-full ${
-                      index === currentQuestionIndex
-                        ? 'bg-blue-600'
-                        : userAnswers.some(a => a.questionIndex === index)
-                        ? 'bg-green-500'
-                        : 'bg-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
             </div>
           </Card>
 
@@ -401,26 +385,26 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getQuestionTypeIcon(currentQuestion.type)}</span>
+                    <span className="text-2xl">📝</span>
                     <h2 className="text-2xl font-bold text-gray-800">
                       Question {currentQuestionIndex + 1}
                     </h2>
                   </div>
-                  <Badge className={`bg-gradient-to-r ${getDifficultyColor(currentQuestion.difficulty)} text-white`}>
-                    {currentQuestion.difficulty.replace('-', ' ').toUpperCase()}
+                  <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    {difficulty.replace('-', ' ').toUpperCase()}
                   </Badge>
                 </div>
                 
                 <Badge variant="outline" className="text-sm">
-                  {currentQuestion.tnpscGroup}
+                  {currentQuestion?.tnpscGroup || "TNPSC"}
                 </Badge>
               </div>
               
               <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-2xl border border-gray-200">
-                <p className="text-gray-800 text-lg leading-relaxed">{currentQuestion.question}</p>
+                <p className="text-gray-800 text-lg leading-relaxed">{currentQuestion?.question}</p>
               </div>
               
-              {currentQuestion.type === 'mcq' && currentQuestion.options ? (
+              {currentQuestion?.type === 'mcq' && currentQuestion.options ? (
                 <RadioGroup value={selectedOption} onValueChange={handleAnswerSelect}>
                   <div className="space-y-4">
                     {currentQuestion.options.map((option, index) => (
@@ -448,7 +432,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                     ))}
                   </div>
                 </RadioGroup>
-              ) : currentQuestion.type === 'true_false' ? (
+              ) : currentQuestion?.type === 'true_false' ? (
                 <RadioGroup value={selectedOption} onValueChange={handleAnswerSelect}>
                   <div className="space-y-4">
                     {['True', 'False'].map((option, index) => (
@@ -488,17 +472,8 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                   />
                 </div>
               )}
-              
-              {!selectedOption.trim() && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-amber-700 text-center font-medium">
-                    👆 Please provide an answer to continue
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Navigation */}
             <div className="flex justify-between items-center pt-6 border-t border-gray-200 mt-8">
               <Button
                 onClick={handlePreviousQuestion}
@@ -516,7 +491,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
 
               <Button
                 onClick={handleNextQuestion}
-                className={`px-8 py-3 bg-gradient-to-r ${getDifficultyColor(difficulty)} hover:shadow-lg transition-all duration-200 font-medium`}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-lg transition-all duration-200 font-medium"
               >
                 {currentQuestionIndex === questions.length - 1 ? (
                   <>
