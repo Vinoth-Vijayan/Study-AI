@@ -1,3 +1,4 @@
+
 import { AnalysisResult, QuestionResult } from "@/components/StudyAssistant";
 
 const GEMINI_API_KEY = "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
@@ -625,7 +626,7 @@ export const generateAdvancedQuestions = async (
 export const generateQuestionsFromAnalysis = async (
   analysisResult: any,
   outputLanguage: "english" | "tamil"
-): Promise<any> => {
+): Promise<QuestionResult> => {
   try {
     const prompt = `
 Based on the following TNPSC analysis results, generate 15-20 multiple choice questions in ${outputLanguage}:
@@ -687,6 +688,9 @@ Return as JSON with this structure:
     // Clean and parse the JSON response
     const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
+    
+    // Ensure totalQuestions is set
+    result.totalQuestions = result.questions.length;
     
     return result;
   } catch (error) {

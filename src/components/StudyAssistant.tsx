@@ -11,8 +11,8 @@ import ImageUpload from "./ImageUpload";
 import AnalysisResults from "./AnalysisResults";
 import QuestionResults from "./QuestionResults";
 import PdfAnalyzer from "./PdfAnalyzer";
-import ImageAnalyzer from "./ImageAnalyzer";
-import EnhancedQuizMode from "./EnhancedQuizMode";
+import QuickAnalysisMode from "./QuickAnalysisMode";
+import ModernQuizMode from "./ModernQuizMode";
 import { analyzeMultipleFiles, generateQuestionsFromAnalysis } from "@/services/geminiService";
 import { toast } from "sonner";
 
@@ -35,7 +35,7 @@ export interface Question {
   question: string;
   options?: string[];
   answer?: string;
-  type: "mcq" | "short" | "essay";
+  type: "mcq" | "true_false" | "short_answer";
   difficulty: "easy" | "medium" | "hard";
   tnpscGroup: string;
 }
