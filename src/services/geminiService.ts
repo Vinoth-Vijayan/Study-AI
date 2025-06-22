@@ -1,4 +1,3 @@
-
 import { AnalysisResult, QuestionResult } from "@/components/StudyAssistant";
 
 const GEMINI_API_KEY = "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
@@ -204,7 +203,7 @@ export const generateQuestions = async (
 
     For each question, provide:
     - Question text
-    - Question type (mcq, short_answer, essay)
+    - Question type (mcq, short, essay)
     - Difficulty level (easy, medium, hard)
     - TNPSC Group relevance (Group 1, Group 2, Group 4, or All Groups)
     - For MCQs: 4 options and correct answer
@@ -224,7 +223,7 @@ export const generateQuestions = async (
           "question": "string",
           "options": ["string array - only for MCQ"],
           "answer": "string",
-          "type": "mcq|short_answer|essay",
+          "type": "mcq|short|essay",
           "difficulty": "easy|medium|hard",
           "tnpscGroup": "Group 1|Group 2|Group 4|All Groups"
         }
@@ -308,7 +307,7 @@ export const generateQuestions = async (
         questions: [
           {
             question: "Based on the study material, what are the key concepts mentioned?",
-            type: "short_answer" as const,
+            type: "short" as const,
             difficulty: "medium" as const,
             tnpscGroup: "All Groups",
             answer: "Please refer to the analyzed study points for detailed information."
@@ -626,7 +625,7 @@ export const generateAdvancedQuestions = async (
 export const generateQuestionsFromAnalysis = async (
   analysisResult: any,
   outputLanguage: "english" | "tamil"
-): Promise<QuestionResult> => {
+): Promise<any> => {
   try {
     const prompt = `
 Based on the following TNPSC analysis results, generate 15-20 multiple choice questions in ${outputLanguage}:
@@ -688,9 +687,6 @@ Return as JSON with this structure:
     // Clean and parse the JSON response
     const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
-    
-    // Ensure totalQuestions is set
-    result.totalQuestions = result.questions.length;
     
     return result;
   } catch (error) {

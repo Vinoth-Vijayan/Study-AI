@@ -1,302 +1,445 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BookOpen, Brain, HelpCircle, CheckCircle, AlertCircle, Circle } from "lucide-react";
-import { AnalysisResult, QuestionResult } from "./StudyAssistant";
-import { generateQuestionsFromAnalysis } from "@/services/geminiService";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, Brain, FileText, Image, Download, Play, CheckCircle, AlertCircle, Loader2, Sparkles, Target } from "lucide-react";
+import { analyzeImage } from "@/services/geminiService";
+import { extractTextFromPdfPage } from "@/utils/pdfReader";
+import { downloadPDF } from "@/utils/pdfUtils";
+import { QuestionResult } from "./StudyAssistant";
 import { toast } from "sonner";
-import ModernQuizMode from "./ModernQuizMode";
 
 interface QuickAnalysisModeProps {
-  analysisResult: AnalysisResult;
-  selectedFiles: File[];
+  files: File[];
+  difficulty: string;
   outputLanguage: "english" | "tamil";
+  onStartQuiz: (result: QuestionResult) => void;
   onReset: () => void;
 }
 
-type AnalysisStage = "keypoints" | "questions";
+interface FileAnalysis {
+  fileName: string;
+  fileType: 'pdf' | 'image';
+  status: 'pending' | 'analyzing' | 'completed' | 'error';
+  keyPoints: string[];
+  summary: string;
+  tnpscCategories: string[];
+  pageCount?: number;
+}
 
-const QuickAnalysisMode = ({ 
-  analysisResult, 
-  selectedFiles, 
-  outputLanguage, 
-  onReset 
-}: QuickAnalysisModeProps) => {
-  const [stage, setStage] = useState<AnalysisStage>("keypoints");
-  const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const [showQuizMode, setShowQuizMode] = useState(false);
+const QuickAnalysisMode = ({ files, difficulty, outputLanguage, onStartQuiz, onReset }: QuickAnalysisModeProps) => {
+  const [analyses, setAnalyses] = useState<FileAnalysis[]>([]);
+  const [currentAnalyzing, setCurrentAnalyzing] = useState<number>(-1);
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [allCompleted, setAllCompleted] = useState(false);
 
-  const handleGenerateQuestions = async () => {
-    setIsGeneratingQuestions(true);
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
+
+  useEffect(() => {
+    initializeAnalyses();
+  }, [files]);
+
+  const initializeAnalyses = () => {
+    const initialAnalyses: FileAnalysis[] = files.map(file => ({
+      fileName: file.name,
+      fileType: file.type === 'application/pdf' ? 'pdf' : 'image',
+      status: 'pending',
+      keyPoints: [],
+      summary: '',
+      tnpscCategories: []
+    }));
+    setAnalyses(initialAnalyses);
+  };
+
+  const analyzeFile = async (file: File, index: number) => {
+    setCurrentAnalyzing(index);
+    setAnalyses(prev => prev.map((analysis, i) => 
+      i === index ? { ...analysis, status: 'analyzing' } : analysis
+    ));
+
     try {
-      const result = await generateQuestionsFromAnalysis(analysisResult, outputLanguage);
-      setQuestionResult(result);
-      setStage("questions");
-      toast.success("Questions generated successfully!");
+      let result;
+      if (file.type === 'application/pdf') {
+        // For PDFs, extract text from first few pages
+        const textContent = await extractTextFromPdfPage(file, 1);
+        result = await analyzeTextContent(textContent, file.name);
+      } else {
+        // For images, use existing image analysis
+        result = await analyzeImage(file, outputLanguage);
+      }
+
+      setAnalyses(prev => prev.map((analysis, i) => 
+        i === index ? {
+          ...analysis,
+          status: 'completed',
+          keyPoints: result.studyPoints?.map(p => `${p.title}: ${p.description}`) || [],
+          summary: result.summary || '',
+          tnpscCategories: result.tnpscCategories || []
+        } : analysis
+      ));
+
+      toast.success(`✅ ${file.name} analyzed successfully!`);
     } catch (error) {
-      console.error("Question generation failed:", error);
-      toast.error("Failed to generate questions. Please try again.");
+      console.error(`Analysis failed for ${file.name}:`, error);
+      setAnalyses(prev => prev.map((analysis, i) => 
+        i === index ? { ...analysis, status: 'error' } : analysis
+      ));
+      toast.error(`❌ Failed to analyze ${file.name}`);
+    }
+
+    setCurrentAnalyzing(-1);
+  };
+
+  const analyzeTextContent = async (text: string, fileName: string) => {
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide all responses in Tamil language. Use Tamil script for all content."
+      : "Please provide all responses in English language.";
+
+    const prompt = `
+Analyze this text content for TNPSC preparation:
+
+Content: ${text.substring(0, 3000)}
+
+${languageInstruction}
+
+Provide analysis in this JSON format:
+{
+  "mainTopic": "Main topic of the content",
+  "studyPoints": [
+    {
+      "title": "Key point title",
+      "description": "Detailed description",
+      "importance": "high/medium/low",
+      "tnpscRelevance": "TNPSC relevance explanation"
+    }
+  ],
+  "summary": "Overall summary of the content",
+  "tnpscCategories": ["Category1", "Category2"]
+}
+
+Focus on TNPSC Group 1, 2, 4 exam relevance.
+`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+      })
+    });
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(cleanedContent);
+  };
+
+  const startAnalysis = async () => {
+    for (let i = 0; i < files.length; i++) {
+      await analyzeFile(files[i], i);
+      setOverallProgress(((i + 1) / files.length) * 100);
+    }
+    setAllCompleted(true);
+    toast.success("🎉 All files analyzed successfully!");
+  };
+
+  const generateQuizFromAnalyses = async () => {
+    setIsGeneratingQuiz(true);
+    try {
+      const completedAnalyses = analyses.filter(a => a.status === 'completed');
+      if (completedAnalyses.length === 0) {
+        throw new Error("No completed analyses available");
+      }
+
+      // Combine all key points and summaries
+      const allKeyPoints = completedAnalyses.flatMap(a => a.keyPoints);
+      const combinedSummary = completedAnalyses.map(a => `${a.fileName}: ${a.summary}`).join('\n\n');
+      const allCategories = Array.from(new Set(completedAnalyses.flatMap(a => a.tnpscCategories)));
+
+      // Generate questions using Gemini API
+      const questions = await generateQuestionsFromContent(allKeyPoints.join('\n'), combinedSummary);
+
+      const result: QuestionResult = {
+        questions,
+        summary: combinedSummary,
+        keyPoints: allKeyPoints,
+        difficulty
+      };
+
+      onStartQuiz(result);
+    } catch (error) {
+      console.error("Quiz generation failed:", error);
+      toast.error("Failed to generate quiz. Please try again.");
     } finally {
-      setIsGeneratingQuestions(false);
+      setIsGeneratingQuiz(false);
     }
   };
 
-  const handleStartQuiz = () => {
-    setShowQuizMode(true);
-  };
+  const generateQuestionsFromContent = async (keyPoints: string, summary: string) => {
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide all questions and answers in Tamil language."
+      : "Please provide all questions and answers in English language.";
 
-  const getImportanceIcon = (importance: string) => {
-    switch (importance) {
-      case "high":
-        return <CheckCircle className="h-4 w-4 text-red-500" />;
-      case "medium":
-        return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      default:
-        return <Circle className="h-4 w-4 text-blue-500" />;
-    }
-  };
+    const prompt = `
+Based on this TNPSC study content, generate 15-20 questions:
 
-  const getImportanceBadge = (importance: string) => {
-    switch (importance) {
-      case "high":
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">High Priority</Badge>;
-      case "medium":
-        return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Medium Priority</Badge>;
-      default:
-        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Low Priority</Badge>;
-    }
-  };
+Key Points: ${keyPoints.substring(0, 2000)}
+Summary: ${summary.substring(0, 1000)}
 
-  const getDifficultyBadge = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy":
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Easy</Badge>;
-      case "medium":
-        return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Medium</Badge>;
-      case "hard":
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Hard</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">{difficulty}</Badge>;
-    }
-  };
+Difficulty: ${difficulty}
+${languageInstruction}
 
-  if (showQuizMode) {
-    return (
-      <ModernQuizMode
-        analysisResult={analysisResult}
-        selectedFiles={selectedFiles}
-        outputLanguage={outputLanguage}
-        onReset={onReset}
-        onBack={() => setShowQuizMode(false)}
-      />
-    );
+Generate a mix of:
+- Multiple choice questions (4 options each)
+- True/False questions
+- Short answer questions
+
+Return as JSON array:
+[
+  {
+    "question": "Question text",
+    "options": ["A", "B", "C", "D"], // for MCQ only
+    "answer": "Correct answer",
+    "type": "mcq" | "true_false" | "short_answer",
+    "difficulty": "${difficulty}",
+    "tnpscGroup": "Group 1",
+    "explanation": "Brief explanation"
   }
+]
+`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 3000 }
+      })
+    });
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(cleanedContent);
+  };
+
+  const handleDownloadAnalysis = async () => {
+    try {
+      const completedAnalyses = analyses.filter(a => a.status === 'completed');
+      await downloadPDF({
+        title: 'TNPSC Study Analysis Report',
+        content: completedAnalyses,
+        type: 'analysis'
+      });
+      toast.success("Analysis report downloaded successfully!");
+    } catch (error) {
+      toast.error("Failed to download report. Please try again.");
+    }
+  };
+
+  const getStatusIcon = (status: FileAnalysis['status']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'analyzing':
+        return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <div className="h-4 w-4 bg-gray-300 rounded-full" />;
+    }
+  };
+
+  const getDifficultyColor = (diff: string) => {
+    const colors = {
+      'easy': 'from-green-500 to-emerald-600',
+      'medium': 'from-yellow-500 to-orange-600',
+      'hard': 'from-red-500 to-pink-600',
+      'very-hard': 'from-purple-500 to-indigo-600'
+    };
+    return colors[diff as keyof typeof colors] || 'from-gray-500 to-gray-600';
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
-          <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg border-0">
-            <div className="flex items-start gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <Button
-                    onClick={onReset}
-                    variant="ghost"
-                    className="text-gray-600 hover:text-gray-800"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Upload New Files
-                  </Button>
+          <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-xl border-0">
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                onClick={onReset}
+                variant="ghost"
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Upload
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                <Brain className="h-6 w-6 text-blue-600" />
+                <h1 className="text-2xl font-bold text-gray-800">Smart Analysis</h1>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{files.length}</div>
+                <div className="text-sm text-blue-700">Files</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {analyses.filter(a => a.status === 'completed').length}
                 </div>
-                
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
-                    <h2 className="text-2xl font-bold text-gray-800">TNPSC Analysis Results</h2>
-                  </div>
-                  <div className="flex gap-2 mb-2 flex-wrap">
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                      Language: {analysisResult.language}
-                    </Badge>
-                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                      Source Files: {selectedFiles.length}
-                    </Badge>
-                    {analysisResult.tnpscCategories && analysisResult.tnpscCategories.length > 0 && (
-                      <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
-                        TNPSC Relevant
-                      </Badge>
+                <div className="text-sm text-green-700">Analyzed</div>
+              </div>
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <Badge className={`bg-gradient-to-r ${getDifficultyColor(difficulty)} text-white`}>
+                  {difficulty.toUpperCase()}
+                </Badge>
+              </div>
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <Badge className="bg-orange-100 text-orange-700">
+                  {outputLanguage === 'tamil' ? 'தமிழ்' : 'English'}
+                </Badge>
+              </div>
+            </div>
+          </Card>
+
+          {/* Progress */}
+          {overallProgress > 0 && overallProgress < 100 && (
+            <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-xl border-0">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Analysis Progress</span>
+                  <span className="text-sm text-gray-600">{Math.round(overallProgress)}%</span>
+                </div>
+                <Progress value={overallProgress} className="h-2" />
+              </div>
+            </Card>
+          )}
+
+          {/* File Status */}
+          <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-xl border-0">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-blue-600" />
+              File Analysis Status
+            </h3>
+            
+            <div className="space-y-3">
+              {analyses.map((analysis, index) => (
+                <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 flex-1">
+                    {analysis.fileType === 'pdf' ? (
+                      <FileText className="h-5 w-5 text-red-600" />
+                    ) : (
+                      <Image className="h-5 w-5 text-blue-600" />
                     )}
+                    <span className="font-medium text-gray-700 truncate">
+                      {analysis.fileName}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(analysis.status)}
+                    <span className="text-sm text-gray-600 capitalize">
+                      {analysis.status}
+                    </span>
                   </div>
                 </div>
+              ))}
+            </div>
+          </Card>
 
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg mb-4">
-                  <h3 className="font-semibold text-gray-800 mb-2">Main Topic</h3>
-                  <p className="text-lg text-gray-700">{analysisResult.mainTopic}</p>
-                  {analysisResult.tnpscCategories && analysisResult.tnpscCategories.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium text-gray-600 mb-1">TNPSC Categories:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {analysisResult.tnpscCategories.map((category, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {category}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+          {/* Action Buttons */}
+          <Card className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 shadow-xl border-0">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {!allCompleted ? (
+                <Button
+                  onClick={startAnalysis}
+                  disabled={currentAnalyzing !== -1}
+                  className={`bg-gradient-to-r ${getDifficultyColor(difficulty)} hover:shadow-lg px-8 py-6 text-lg font-semibold`}
+                >
+                  {currentAnalyzing !== -1 ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                      Analyzing Files...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5 mr-3" />
+                      Start Analysis
+                    </>
                   )}
-                </div>
-
-                <div className="flex gap-3 flex-wrap">
+                </Button>
+              ) : (
+                <>
                   <Button
-                    onClick={handleGenerateQuestions}
-                    disabled={isGeneratingQuestions}
-                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white"
+                    onClick={generateQuizFromAnalyses}
+                    disabled={isGeneratingQuiz}
+                    className={`bg-gradient-to-r ${getDifficultyColor(difficulty)} hover:shadow-lg px-8 py-6 text-lg font-semibold`}
                   >
-                    {isGeneratingQuestions ? (
+                    {isGeneratingQuiz ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Generating Questions...
+                        <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                        Generating Quiz...
                       </>
                     ) : (
                       <>
-                        <HelpCircle className="h-4 w-4 mr-2" />
-                        Generate Questions
+                        <Play className="h-5 w-5 mr-3" />
+                        Start Smart Quiz
                       </>
                     )}
                   </Button>
-
+                  
                   <Button
-                    onClick={handleStartQuiz}
-                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+                    onClick={handleDownloadAnalysis}
+                    variant="outline"
+                    className="px-8 py-6 text-lg font-semibold border-2"
                   >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Start Interactive Quiz
+                    <Download className="h-5 w-5 mr-3" />
+                    Download Report
                   </Button>
-                </div>
-              </div>
-
-              {selectedFiles.length > 0 && (
-                <div className="w-48 flex-shrink-0">
-                  <div className="text-sm font-medium text-gray-700 mb-2">Source Files</div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {selectedFiles.slice(0, 3).map((file, index) => (
-                      <div key={index} className="text-xs text-gray-600 truncate">
-                        {file.name}
-                      </div>
-                    ))}
-                    {selectedFiles.length > 3 && (
-                      <div className="text-xs text-gray-500">
-                        +{selectedFiles.length - 3} more files
-                      </div>
-                    )}
-                  </div>
-                </div>
+                </>
               )}
             </div>
           </Card>
 
-          {stage === "keypoints" && (
-            <>
-              {/* Study Points */}
-              <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg border-0">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Key Study Points for TNPSC</h3>
-                <div className="space-y-4">
-                  {analysisResult.studyPoints.map((point, index) => (
-                    <div
-                      key={index}
-                      className="p-4 bg-white rounded-lg shadow-sm border-l-4 border-blue-400 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          {getImportanceIcon(point.importance)}
-                          <h4 className="font-semibold text-gray-800">{point.title}</h4>
-                        </div>
-                        {getImportanceBadge(point.importance)}
-                      </div>
-                      <p className="text-gray-700 leading-relaxed mb-2">{point.description}</p>
-                      {point.tnpscRelevance && (
-                        <div className="mt-2 p-2 bg-yellow-50 rounded border-l-2 border-yellow-400">
-                          <p className="text-sm text-yellow-800">
-                            <strong>TNPSC Relevance:</strong> {point.tnpscRelevance}
-                          </p>
-                        </div>
+          {/* Analysis Results Preview */}
+          {allCompleted && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-gray-800">Analysis Summary</h3>
+              {analyses.filter(a => a.status === 'completed').map((analysis, index) => (
+                <Card key={index} className="p-6 bg-white/90 backdrop-blur-sm shadow-lg border-0">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      {analysis.fileType === 'pdf' ? (
+                        <FileText className="h-5 w-5 text-red-600" />
+                      ) : (
+                        <Image className="h-5 w-5 text-blue-600" />
                       )}
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Summary */}
-              <Card className="p-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg border-0">
-                <h3 className="text-xl font-bold mb-3">Summary</h3>
-                <p className="text-blue-50 leading-relaxed">{analysisResult.summary}</p>
-              </Card>
-            </>
-          )}
-
-          {stage === "questions" && questionResult && (
-            <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg border-0">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Practice Questions</h3>
-                <div className="flex gap-2">
-                  <Badge className="bg-green-100 text-green-700">
-                    Total: {questionResult.totalQuestions}
-                  </Badge>
-                  <Button
-                    onClick={handleStartQuiz}
-                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Start Quiz
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {questionResult.questions.map((question, index) => (
-                  <div key={index} className="p-4 bg-white rounded-lg shadow-sm border">
-                    <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-semibold text-gray-800">Question {index + 1}</h4>
-                      <div className="flex gap-2">
-                        {getDifficultyBadge(question.difficulty)}
-                        <Badge className="bg-purple-100 text-purple-700">
-                          {question.tnpscGroup}
-                        </Badge>
-                      </div>
+                      <h4 className="font-semibold text-gray-800">{analysis.fileName}</h4>
                     </div>
                     
-                    <p className="text-gray-700 mb-4">{question.question}</p>
+                    <p className="text-gray-600 text-sm">{analysis.summary}</p>
                     
-                    {question.options && question.options.length > 0 && (
-                      <div className="space-y-2 mb-4">
-                        <p className="font-medium text-gray-700">Options:</p>
-                        {question.options.map((option, optIndex) => (
-                          <div key={optIndex} className="p-2 bg-gray-50 rounded border-l-2 border-gray-300">
-                            <span className="font-medium text-gray-600">
-                              {String.fromCharCode(65 + optIndex)}.
-                            </span>
-                            <span className="ml-2 text-gray-700">{option}</span>
-                          </div>
+                    {analysis.tnpscCategories.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {analysis.tnpscCategories.map((category, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {category}
+                          </Badge>
                         ))}
                       </div>
                     )}
-                    
-                    {question.answer && (
-                      <div className="p-3 bg-green-50 rounded border-l-4 border-green-400">
-                        <p className="text-sm font-medium text-green-800">
-                          <strong>Answer:</strong> {question.answer}
-                        </p>
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
-            </Card>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </div>
