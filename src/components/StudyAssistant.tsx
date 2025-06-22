@@ -53,7 +53,6 @@ const StudyAssistant = () => {
   const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
   const [activeTab, setActiveTab] = useState("analysis");
   const [showPdfAnalyzer, setShowPdfAnalyzer] = useState(false);
-  const [showImageAnalyzer, setShowImageAnalyzer] = useState(false);
   const [showEnhancedQuiz, setShowEnhancedQuiz] = useState(false);
   const [quizConfig, setQuizConfig] = useState<{
     pageRange: { start: number; end: number };
@@ -133,7 +132,6 @@ const StudyAssistant = () => {
     setQuestionResult(null);
     setActiveTab("analysis");
     setShowPdfAnalyzer(false);
-    setShowImageAnalyzer(false);
     setShowEnhancedQuiz(false);
     setQuizConfig(null);
     setFileInfo({ totalPages: 0, imageCount: 0, pdfCount: 0 });
@@ -148,37 +146,12 @@ const StudyAssistant = () => {
     }
   };
 
-  const handleImageAnalysis = () => {
-    const imageFiles = selectedFiles.filter(file => file.type.startsWith('image/'));
-    if (imageFiles.length > 0) {
-      setShowImageAnalyzer(true);
-    } else {
-      toast.error("Please select image files for page-by-page analysis");
-    }
-  };
-
   const handleStartEnhancedQuiz = (
     pageRange: { start: number; end: number },
     difficulty: string,
     questionsPerPage: number
   ) => {
     setQuizConfig({ pageRange, difficulty, questionsPerPage });
-    setShowEnhancedQuiz(true);
-  };
-
-  const handleStartImageQuiz = (
-    imageIndexes: number[],
-    difficulty: string,
-    questionsPerImage: number
-  ) => {
-    console.log("Starting image quiz with:", { imageIndexes, difficulty, questionsPerImage });
-    
-    // Convert image indexes to page range format for consistency
-    setQuizConfig({ 
-      pageRange: { start: Math.min(...imageIndexes) + 1, end: Math.max(...imageIndexes) + 1 }, 
-      difficulty, 
-      questionsPerPage: questionsPerImage 
-    });
     setShowEnhancedQuiz(true);
   };
 
@@ -199,23 +172,6 @@ const StudyAssistant = () => {
     }
   }
 
-  // If showing Image analyzer
-  if (showImageAnalyzer) {
-    const imageFiles = selectedFiles.filter(file => file.type.startsWith('image/'));
-    if (imageFiles.length > 0) {
-      return (
-        <div className="container mx-auto px-4 py-4 md:py-8">
-          <ImageAnalyzer
-            files={imageFiles}
-            onReset={handleReset}
-            onStartQuiz={handleStartImageQuiz}
-            outputLanguage={outputLanguage}
-          />
-        </div>
-      );
-    }
-  }
-
   // If showing enhanced quiz
   if (showEnhancedQuiz && quizConfig) {
     const pdfFile = selectedFiles.find(file => file.type === 'application/pdf');
@@ -224,30 +180,24 @@ const StudyAssistant = () => {
     if (pdfFile) {
       return (
         <div className="container mx-auto px-4 py-4 md:py-8">
-          <EnhancedQuizMode
-            file={pdfFile}
-            pageRange={quizConfig.pageRange}
-            difficulty={quizConfig.difficulty}
-            questionsPerPage={quizConfig.questionsPerPage}
+          <ModernQuizMode
+            analysisResult={analysisResult}
+            selectedFiles={selectedFiles}
             outputLanguage={outputLanguage}
             onReset={handleReset}
-            onBackToAnalyzer={() => setShowEnhancedQuiz(false)}
+            onBack={() => setShowEnhancedQuiz(false)}
           />
         </div>
       );
     } else if (imageFiles.length > 0) {
       return (
         <div className="container mx-auto px-4 py-4 md:py-8">
-          <EnhancedQuizMode
-            file={imageFiles[0]} // Use first image as representative
-            pageRange={quizConfig.pageRange}
-            difficulty={quizConfig.difficulty}
-            questionsPerPage={quizConfig.questionsPerPage}
+          <ModernQuizMode
+            analysisResult={analysisResult}
+            selectedFiles={selectedFiles}
             outputLanguage={outputLanguage}
             onReset={handleReset}
-            onBackToAnalyzer={() => setShowEnhancedQuiz(false)}
-            isImageMode={true}
-            imageFiles={imageFiles}
+            onBack={() => setShowEnhancedQuiz(false)}
           />
         </div>
       );
@@ -380,16 +330,6 @@ const StudyAssistant = () => {
                           PDF Analysis
                         </Button>
                       )}
-
-                      {fileInfo.imageCount > 0 && (
-                        <Button
-                          onClick={handleImageAnalysis}
-                          className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-3 md:py-4 rounded-lg shadow-lg"
-                        >
-                          <Image className="h-4 w-4 mr-2" />
-                          Image Analysis
-                        </Button>
-                      )}
                       
                       <Button
                         onClick={handleReset}
@@ -427,63 +367,12 @@ const StudyAssistant = () => {
               </div>
             </Card>
           ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="analysis" className="text-sm md:text-base">Study Points</TabsTrigger>
-                <TabsTrigger value="questions" className="text-sm md:text-base">Practice Questions</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="analysis">
-                <AnalysisResults 
-                  result={analysisResult}
-                  onReset={handleReset}
-                  selectedFiles={selectedFiles}
-                  onGenerateQuestions={handleGenerateQuestions}
-                  isGeneratingQuestions={isGeneratingQuestions}
-                />
-              </TabsContent>
-              
-              <TabsContent value="questions">
-                {questionResult ? (
-                  <QuestionResults 
-                    result={questionResult}
-                    onReset={handleReset}
-                    selectedFiles={selectedFiles}
-                  />
-                ) : (
-                  <Card className="p-6 md:p-8 text-center">
-                    <p className="text-gray-600 mb-4">Generate questions from your analysis or use advanced analyzers.</p>
-                    <div className="flex flex-col md:flex-row gap-4 justify-center">
-                      <Button
-                        onClick={handleGenerateQuestions}
-                        disabled={!analysisResult || isGeneratingQuestions}
-                        className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
-                      >
-                        {isGeneratingQuestions ? "Generating..." : "Generate Questions"}
-                      </Button>
-                      
-                      {fileInfo.pdfCount > 0 && (
-                        <Button
-                          onClick={handlePdfAnalysis}
-                          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                        >
-                          Advanced PDF Quiz
-                        </Button>
-                      )}
-                      
-                      {fileInfo.imageCount > 0 && (
-                        <Button
-                          onClick={handleImageAnalysis}
-                          className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                        >
-                          Advanced Image Quiz
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                )}
-              </TabsContent>
-            </Tabs>
+            <QuickAnalysisMode
+              analysisResult={analysisResult}
+              selectedFiles={selectedFiles}
+              outputLanguage={outputLanguage}
+              onReset={handleReset}
+            />
           )}
         </div>
       </div>

@@ -204,7 +204,7 @@ export const generateQuestions = async (
 
     For each question, provide:
     - Question text
-    - Question type (mcq, short, essay)
+    - Question type (mcq, short_answer, essay)
     - Difficulty level (easy, medium, hard)
     - TNPSC Group relevance (Group 1, Group 2, Group 4, or All Groups)
     - For MCQs: 4 options and correct answer
@@ -224,7 +224,7 @@ export const generateQuestions = async (
           "question": "string",
           "options": ["string array - only for MCQ"],
           "answer": "string",
-          "type": "mcq|short|essay",
+          "type": "mcq|short_answer|essay",
           "difficulty": "easy|medium|hard",
           "tnpscGroup": "Group 1|Group 2|Group 4|All Groups"
         }
@@ -308,7 +308,7 @@ export const generateQuestions = async (
         questions: [
           {
             question: "Based on the study material, what are the key concepts mentioned?",
-            type: "short" as const,
+            type: "short_answer" as const,
             difficulty: "medium" as const,
             tnpscGroup: "All Groups",
             answer: "Please refer to the analyzed study points for detailed information."
