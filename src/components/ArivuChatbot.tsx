@@ -1,11 +1,14 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Paperclip, Image, MessageCircle, Brain, User } from "lucide-react";
+import { Send, Paperclip, Image, MessageCircle, Brain, User, Languages } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
+import { auth, db } from "@/config/firebase";
 
 interface Message {
   id: string;
@@ -16,6 +19,7 @@ interface Message {
 }
 
 const ArivuChatbot = () => {
+  const [user] = useAuthState(auth);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -27,10 +31,53 @@ const ArivuChatbot = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [language, setLanguage] = useState<"english" | "tamil">("english");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyAJ2P2TqBOXQncnBgT0T_BNsLcAA7cToo4";
+
+  useEffect(() => {
+    if (language === "tamil") {
+      setMessages(prev => prev.length === 1 ? [{
+        id: "1",
+        content: "வணக்கம்! நான் அறிவு, உங்கள் தமிழ்நாடு பொதுச் சேவை ஆணையம் படிப்பு துணைவன். நான் கருத்துகளை புரிந்துகொள்ள, கேள்விகளுக்கு பதிலளிக்க, படங்கள் அல்லது ஆவணங்களை பகுப்பாய்வு செய்ய உதவ முடியும். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+        sender: "arivu",
+        timestamp: new Date()
+      }] : prev);
+    } else {
+      setMessages(prev => prev.length === 1 ? [{
+        id: "1",
+        content: "Hello! I'm Arivu, your TNPSC study companion. I can help you understand concepts, answer questions, and analyze images or documents. How can I assist you today?",
+        sender: "arivu",
+        timestamp: new Date()
+      }] : prev);
+    }
+  }, [language]);
+
+  const fetchRecentStudyHistory = async () => {
+    if (!user) return "";
+    
+    try {
+      const q = query(
+        collection(db, "studyHistory"),
+        where("userId", "==", user.uid),
+        orderBy("timestamp", "desc"),
+        limit(5)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const historyText = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return `${data.type}: ${data.fileName || 'Study session'} - ${data.difficulty} level`;
+      }).join('\n');
+      
+      return historyText;
+    } catch (error) {
+      console.error("Error fetching study history:", error);
+      return "";
+    }
+  };
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
@@ -80,15 +127,25 @@ const ArivuChatbot = () => {
         `${msg.sender === 'user' ? 'User' : 'Arivu'}: ${msg.content}`
       ).join('\n');
 
-      let prompt = `You are 'Arivu', a friendly and highly knowledgeable TNPSC exam expert. Your purpose is to help students preparing for TNPSC Group 1, 2, and 4 exams.
+      const studyHistory = await fetchRecentStudyHistory();
+
+      const languageInstruction = language === "tamil" 
+        ? "Please respond in Tamil language using Tamil script."
+        : "Please respond in English language.";
+
+      let prompt = `You are 'Arivu', a friendly and highly knowledgeable TNPSC exam expert and general AI assistant. Your purpose is to help students preparing for TNPSC Group 1, 2, and 4 exams, but you can also help with general questions, math problems, and analysis of uploaded files.
 
 Your rules are:
-1. Your knowledge base is the official TNPSC syllabus, focusing on Indian Polity, History, Geography, Economy, Tamil Nadu History & Culture, and Current Affairs.
-2. Always provide accurate, concise, and easy-to-understand answers.
-3. If you don't know the answer or if a question is outside the TNPSC scope, you must politely say "I do not have information on that topic, as my focus is on the TNPSC syllabus." Do not invent answers.
-4. If the user asks in Tamil, respond in Tamil.
-5. Keep the conversation encouraging and supportive.
-6. If analyzing images or documents, focus on TNPSC-relevant content.
+1. Your primary expertise is the official TNPSC syllabus, focusing on Indian Polity, History, Geography, Economy, Tamil Nadu History & Culture, and Current Affairs.
+2. You can also help with general knowledge, math problems, and analysis of uploaded documents/images.
+3. Always provide accurate, concise, and easy-to-understand answers.
+4. If you don't know the answer to a specific question, admit it honestly and suggest where the user might find the information.
+5. ${languageInstruction}
+6. Keep the conversation encouraging and supportive.
+7. If analyzing images or documents, focus on educational content and provide detailed explanations.
+
+Recent study history of the user:
+${studyHistory}
 
 Conversation history:
 ${conversationHistory}
@@ -156,7 +213,9 @@ User's new message: ${inputMessage}`;
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
+        content: language === "tamil" 
+          ? "மன்னிக்கவும், இப்போது பதிலளிப்பதில் சிக்கல் உள்ளது. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்."
+          : "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
         sender: "arivu",
         timestamp: new Date()
       };
@@ -180,15 +239,29 @@ User's new message: ${inputMessage}`;
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <Card className="p-4 md:p-6 bg-white/90 backdrop-blur-sm shadow-xl border-0 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-r from-green-500 to-blue-600 rounded-full">
-                <MessageCircle className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-r from-green-500 to-blue-600 rounded-full">
+                  <MessageCircle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                    Arivu - TNPSC Chat Assistant
+                  </h1>
+                  <p className="text-gray-600">Ask me anything about TNPSC syllabus</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                  Arivu - TNPSC Chat Assistant
-                </h1>
-                <p className="text-gray-600">Ask me anything about TNPSC syllabus</p>
+              
+              <div className="flex items-center gap-2">
+                <Languages className="h-4 w-4 text-gray-500" />
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as "english" | "tamil")}
+                  className="p-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                >
+                  <option value="english">English</option>
+                  <option value="tamil">தமிழ்</option>
+                </select>
               </div>
             </div>
           </Card>
@@ -309,7 +382,10 @@ User's new message: ${inputMessage}`;
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask Arivu about TNPSC topics..."
+                  placeholder={language === "tamil" 
+                    ? "அறிவுவிடம் தமிழ்நாடு பொதுச் சேவை ஆணையம் தலைப்புகளைப் பற்றி கேளுங்கள்..."
+                    : "Ask Arivu about TNPSC topics..."
+                  }
                   className="flex-1"
                   disabled={isLoading}
                 />

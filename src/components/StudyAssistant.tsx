@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Image, Settings, Languages, Brain, Zap } from "lucide-react";
 import { analyzeImage, analyzeMultipleImages } from "@/services/geminiService";
 import { toast } from "sonner";
+import { useAppContext } from "@/contexts/AppContext";
 import AnalysisResults from "./AnalysisResults";
 import QuestionResults from "./QuestionResults";
 import ModernQuizMode from "./ModernQuizMode";
@@ -47,14 +47,23 @@ export interface QuestionResult {
 }
 
 const StudyAssistant = () => {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
-  const [questionResult, setQuestionResult] = useState<QuestionResult | null>(null);
+  const {
+    selectedFiles,
+    setSelectedFiles,
+    analysisResults,
+    setAnalysisResults,
+    questionResult,
+    setQuestionResult,
+    difficulty,
+    setDifficulty,
+    outputLanguage,
+    setOutputLanguage,
+    clearAppState
+  } = useAppContext();
+
   const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const [difficulty, setDifficulty] = useState("medium");
-  const [outputLanguage, setOutputLanguage] = useState<"english" | "tamil">("english");
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
@@ -140,10 +149,14 @@ const StudyAssistant = () => {
   };
 
   const resetToUpload = () => {
-    setSelectedFiles([]);
-    setAnalysisResults([]);
-    setQuestionResult(null);
+    clearAppState();
     setCurrentView("upload");
+  };
+
+  const startQuizFromAnalysis = () => {
+    if (questionResult) {
+      setCurrentView("quiz");
+    }
   };
 
   if (currentView === "quick-analysis") {
@@ -176,6 +189,7 @@ const StudyAssistant = () => {
         result={questionResult}
         onReset={resetToUpload}
         selectedFiles={selectedFiles}
+        onStartQuiz={startQuizFromAnalysis}
       />
     );
   }
@@ -187,6 +201,7 @@ const StudyAssistant = () => {
         onReset={resetToUpload}
         selectedFiles={selectedFiles}
         onGenerateQuestions={generateQuestions}
+        onStartQuiz={startQuizFromAnalysis}
         isGeneratingQuestions={isGeneratingQuestions}
       />
     );
