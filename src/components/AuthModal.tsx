@@ -9,6 +9,13 @@ import { toast } from "sonner";
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from "firebase/auth";
 import { auth } from "@/config/firebase";
 
+// Extend Window interface to include recaptchaVerifier
+declare global {
+  interface Window {
+    recaptchaVerifier: RecaptchaVerifier;
+  }
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
