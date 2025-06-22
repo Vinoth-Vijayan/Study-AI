@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, X, User, LogOut, History, Settings, Brain } from "lucide-react";
+import { Menu, X, User, LogOut, History, Settings, Brain, MessageCircle } from "lucide-react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { signOut } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -31,49 +30,54 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
 
   const navItems = [
     { id: "study", label: "Study Assistant", icon: Brain },
+    { id: "arivu", label: "Arivu Chat", icon: MessageCircle },
     { id: "history", label: "Study History", icon: History },
     { id: "profile", label: "Profile", icon: Settings },
   ];
 
   return (
     <>
-      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14 md:h-16">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-                <Brain className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
+                <Brain className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Ram's AI
                 </h1>
               </div>
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-4 lg:gap-6">
               {navItems.map((item) => (
                 <Button
                   key={item.id}
                   variant={currentView === item.id ? "default" : "ghost"}
                   onClick={() => onViewChange(item.id)}
-                  className="flex items-center gap-2"
+                  className={`flex items-center gap-2 px-3 lg:px-4 ${
+                    currentView === item.id 
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700" 
+                      : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
                 >
                   <item.icon className="h-4 w-4" />
-                  {item.label}
+                  <span className="hidden lg:inline">{item.label}</span>
                 </Button>
               ))}
             </nav>
 
             {/* User Section */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {user ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                   <div className="hidden sm:block text-right">
                     <p className="text-sm font-medium text-gray-900">
-                      {user.phoneNumber}
+                      +91{user.phoneNumber?.replace('+91', '')}
                     </p>
                     <Badge variant="outline" className="text-xs">
                       Verified
@@ -83,7 +87,7 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
                   >
                     <LogOut className="h-4 w-4" />
                     <span className="hidden sm:inline">Logout</span>
@@ -92,11 +96,12 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
               ) : (
                 <Button
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 flex items-center gap-2"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center gap-2 px-3 md:px-4"
                   disabled={loading}
+                  size="sm"
                 >
                   <User className="h-4 w-4" />
-                  Login
+                  <span className="text-sm">Login</span>
                 </Button>
               )}
 
@@ -104,7 +109,7 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="md:hidden text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                className="md:hidden text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -114,8 +119,8 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
 
           {/* Mobile Navigation */}
           {isMobileMenuOpen && (
-            <nav className="md:hidden py-4 border-t border-gray-200">
-              <div className="space-y-2">
+            <nav className="md:hidden py-3 border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+              <div className="space-y-1">
                 {navItems.map((item) => (
                   <Button
                     key={item.id}
@@ -124,7 +129,11 @@ const NavigationHeader = ({ currentView, onViewChange }: NavigationHeaderProps) 
                       onViewChange(item.id);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start flex items-center gap-2"
+                    className={`w-full justify-start flex items-center gap-3 px-4 py-3 ${
+                      currentView === item.id 
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" 
+                        : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                    }`}
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}

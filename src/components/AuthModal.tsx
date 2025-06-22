@@ -12,7 +12,7 @@ import { auth } from "@/config/firebase";
 // Extend Window interface to include recaptchaVerifier
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
+    recaptchaVerifier?: RecaptchaVerifier;
   }
 }
 
@@ -48,10 +48,9 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     setIsLoading(true);
     try {
       setupRecaptcha();
-      const formattedPhone = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+      const formattedPhone = `+91${phoneNumber}`;
       
-      // Note: This will fail until you enable Phone Authentication in Firebase Console
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier!);
       setConfirmationResult(confirmation);
       toast.success("OTP sent successfully!");
     } catch (error: any) {
@@ -60,7 +59,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       if (error.code === 'auth/configuration-not-found') {
         toast.error("Phone authentication not configured. Please enable it in Firebase Console.");
       } else {
-        toast.error(error.message || "Failed to sen OTP. Please try again.");
+        toast.error(error.message || "Failed to send OTP. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -99,15 +98,22 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     onClose();
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length <= 10) {
+      setPhoneNumber(value);
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[95%] max-w-[400px] mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center">
+            <DialogTitle className="text-xl md:text-2xl font-bold text-center">
               Welcome to Ram's AI
             </DialogTitle>
-            <DialogDescription className="text-center">
+            <DialogDescription className="text-center text-sm md:text-base">
               Sign in with your phone number to save your progress
             </DialogDescription>
           </DialogHeader>
@@ -122,22 +128,28 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="Enter your phone number"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full"
-                    />
+                    <div className="flex">
+                      <div className="flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
+                        <span className="text-gray-600 font-medium">+91</span>
+                      </div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="9876543210"
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        className="rounded-l-none flex-1"
+                        maxLength={10}
+                      />
+                    </div>
                     <p className="text-xs text-gray-500">
-                      Format: 9876543210 or +919876543210
+                      Enter your 10-digit mobile number
                     </p>
                   </div>
                   
                   <Button
                     onClick={sendOtp}
-                    disabled={isLoading}
+                    disabled={isLoading || phoneNumber.length !== 10}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
                   >
                     {isLoading ? "Sending OTP..." : "Send OTP"}
@@ -156,19 +168,19 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                       type="text"
                       placeholder="Enter 6-digit OTP"
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       maxLength={6}
-                      className="w-full text-center text-lg"
+                      className="w-full text-center text-lg tracking-widest"
                     />
                     <p className="text-xs text-gray-500 text-center">
-                      OTP sent to {phoneNumber}
+                      OTP sent to +91{phoneNumber}
                     </p>
                   </div>
                   
                   <div className="space-y-2">
                     <Button
                       onClick={verifyOtp}
-                      disabled={isLoading}
+                      disabled={isLoading || otp.length !== 6}
                       className="w-full bg-gradient-to-r from-green-600 to-blue-600"
                     >
                       {isLoading ? "Verifying..." : "Verify OTP"}

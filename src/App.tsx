@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import NavigationHeader from "./components/NavigationHeader";
 import StudyAssistant from "./components/StudyAssistant";
 import StudyHistory from "./components/StudyHistory";
 import UserProfile from "./components/UserProfile";
+import ArivuChatbot from "./components/ArivuChatbot";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +20,8 @@ const App = () => {
         return <StudyHistory />;
       case "profile":
         return <UserProfile />;
+      case "arivu":
+        return <ArivuChatbot />;
       default:
         return <StudyAssistant />;
     }
