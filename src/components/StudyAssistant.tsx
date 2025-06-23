@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Image, Settings, Languages, Brain, Zap } from "lucide-react";
-import { analyzeImage, analyzeMultipleImages, analyzePdfContent } from "@/services/geminiService";
+import { analyzeImage, analyzeMultipleImages, analyzePdfContent, analyzePdfContentComprehensive, generateQuestions } from "@/services/geminiService";
 import { extractAllPdfText, findTotalPagesFromOcr, extractPageRangeFromOcr } from "@/utils/pdfReader";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
@@ -12,6 +12,7 @@ import QuestionResults from "./QuestionResults";
 import ModernQuizMode from "./ModernQuizMode";
 import QuickAnalysisMode from "./QuickAnalysisMode";
 import PdfPageSelector from "./PdfPageSelector";
+import ComprehensivePdfResults from "./ComprehensivePdfResults";
 
 export interface AnalysisResult {
   keyPoints: string[];
@@ -63,10 +64,27 @@ const StudyAssistant = () => {
     clearAppState
   } = useAppContext();
 
-  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select">("upload");
+  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select" | "comprehensive-pdf">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [pdfInfo, setPdfInfo] = useState<{file: File; totalPages: number} | null>(null);
+  const [comprehensiveResults, setComprehensiveResults] = useState<{
+    pageAnalyses: Array<{
+      pageNumber: number;
+      keyPoints: string[];
+      studyPoints: Array<{
+        title: string;
+        description: string;
+        importance: "high" | "medium" | "low";
+        tnpscRelevance: string;
+      }>;
+      summary: string;
+      tnpscRelevance: string;
+    }>;
+    overallSummary: string;
+    totalKeyPoints: string[];
+    tnpscCategories: string[];
+  } | null>(null);
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
@@ -166,6 +184,24 @@ const StudyAssistant = () => {
     }
   };
 
+  const analyzeComprehensivePdf = async (file: File) => {
+    setIsAnalyzing(true);
+    try {
+      const fullText = await extractAllPdfText(file);
+      toast.info("Starting comprehensive analysis of all pages...");
+      
+      const result = await analyzePdfContentComprehensive(fullText, outputLanguage);
+      setComprehensiveResults(result);
+      setCurrentView("comprehensive-pdf");
+      toast.success(`Comprehensive analysis completed! Analyzed ${result.pageAnalyses.length} pages.`);
+    } catch (error) {
+      console.error("Comprehensive PDF analysis error:", error);
+      toast.error("Failed to analyze PDF comprehensively. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handlePdfPageRangeSelect = (startPage: number, endPage: number) => {
     if (pdfInfo) {
       analyzePdfFile(pdfInfo.file, startPage, endPage);
@@ -174,7 +210,32 @@ const StudyAssistant = () => {
 
   const handlePdfAnalyzeAll = () => {
     if (pdfInfo) {
-      analyzePdfFile(pdfInfo.file);
+      analyzeComprehensivePdf(pdfInfo.file);
+    }
+  };
+
+  const handleComprehensiveQuizGeneration = async (startPage: number, endPage: number) => {
+    if (!pdfInfo || !comprehensiveResults) return;
+    
+    setIsGeneratingQuestions(true);
+    try {
+      const fullText = await extractAllPdfText(pdfInfo.file);
+      const contentToAnalyze = extractPageRangeFromOcr(fullText, startPage, endPage);
+      
+      const analysisResult = await analyzePdfContent(contentToAnalyze, outputLanguage);
+      const result = await generateQuestions([analysisResult], difficulty, outputLanguage);
+      
+      setQuestionResult({
+        ...result,
+        totalQuestions: result.questions?.length || 0
+      });
+      setCurrentView("questions");
+      toast.success("Questions generated successfully!");
+    } catch (error) {
+      console.error("Question generation error:", error);
+      toast.error("Failed to generate questions. Please try again.");
+    } finally {
+      setIsGeneratingQuestions(false);
     }
   };
 
@@ -268,6 +329,19 @@ const StudyAssistant = () => {
         selectedFiles={selectedFiles}
         onGenerateQuestions={generateQuestions}
         onStartQuiz={startQuizFromAnalysis}
+        isGeneratingQuestions={isGeneratingQuestions}
+      />
+    );
+  }
+
+  if (currentView === "comprehensive-pdf" && comprehensiveResults) {
+    return (
+      <ComprehensivePdfResults
+        pageAnalyses={comprehensiveResults.pageAnalyses}
+        overallSummary={comprehensiveResults.overallSummary}
+        totalKeyPoints={comprehensiveResults.totalKeyPoints}
+        onReset={resetToUpload}
+        onGenerateQuestions={handleComprehensiveQuizGeneration}
         isGeneratingQuestions={isGeneratingQuestions}
       />
     );
