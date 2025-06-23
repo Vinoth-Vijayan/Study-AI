@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Image, Settings, Languages, Brain, Zap } from "lucide-react";
-import { analyzeImage, analyzeMultipleImages, analyzePdfContent, analyzePdfContentComprehensive, generateQuestions } from "@/services/geminiService";
+import { analyzeImage, analyzeMultipleImages, analyzePdfContent, analyzePdfContentComprehensive, generateQuestions as generateQuestionsFromService } from "@/services/geminiService";
 import { extractAllPdfText, findTotalPagesFromOcr, extractPageRangeFromOcr } from "@/utils/pdfReader";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
@@ -223,7 +223,7 @@ const StudyAssistant = () => {
       const contentToAnalyze = extractPageRangeFromOcr(fullText, startPage, endPage);
       
       const analysisResult = await analyzePdfContent(contentToAnalyze, outputLanguage);
-      const result = await generateQuestions([analysisResult], difficulty, outputLanguage);
+      const result = await generateQuestionsFromService([analysisResult], difficulty, outputLanguage);
       
       setQuestionResult({
         ...result,
@@ -239,12 +239,12 @@ const StudyAssistant = () => {
     }
   };
 
-  const generateQuestions = async () => {
+  const generateQuestionsFromAnalysis = async () => {
     if (analysisResults.length === 0) return;
     
     setIsGeneratingQuestions(true);
     try {
-      const result = await analyzeMultipleImages(selectedFiles, difficulty, outputLanguage);
+      const result = await generateQuestionsFromService(analysisResults, difficulty, outputLanguage);
       setQuestionResult({
         ...result,
         totalQuestions: result.questions?.length || 0
@@ -327,7 +327,7 @@ const StudyAssistant = () => {
         result={analysisResults[0]}
         onReset={resetToUpload}
         selectedFiles={selectedFiles}
-        onGenerateQuestions={generateQuestions}
+        onGenerateQuestions={generateQuestionsFromAnalysis}
         onStartQuiz={startQuizFromAnalysis}
         isGeneratingQuestions={isGeneratingQuestions}
       />
