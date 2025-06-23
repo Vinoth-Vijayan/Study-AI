@@ -53,11 +53,9 @@ const ComprehensivePdfResults = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRange, setSelectedRange] = useState({ start: 1, end: Math.min(10, pageAnalyses.length) });
   const [isGeneratingPage, setIsGeneratingPage] = useState(false);
-  const itemsPerPage = 1;
   const totalPages = pageAnalyses.length;
 
   const currentAnalysis = pageAnalyses[currentPage - 1];
-  const maxAnalyzedPage = Math.max(...pageAnalyses.map(p => p.pageNumber));
 
   const getImportanceColor = (importance: string) => {
     switch (importance) {
@@ -73,59 +71,84 @@ const ComprehensivePdfResults = ({
   };
 
   const handleGenerateNextPage = async () => {
-    if (!onGenerateNextPage) return;
+    if (!onGenerateNextPage || !currentAnalysis) return;
     
     const nextPageNumber = currentAnalysis.pageNumber + 1;
+    console.log(`Generating next page: ${nextPageNumber}, Total PDF pages: ${totalPdfPages}`);
+    
     if (nextPageNumber > totalPdfPages) {
       toast.error("No more pages available");
       return;
     }
 
     // Check if page already exists
-    const existingPage = pageAnalyses.find(p => p.pageNumber === nextPageNumber);
-    if (existingPage) {
-      const pageIndex = pageAnalyses.findIndex(p => p.pageNumber === nextPageNumber);
-      setCurrentPage(pageIndex + 1);
+    const existingPageIndex = pageAnalyses.findIndex(p => p.pageNumber === nextPageNumber);
+    if (existingPageIndex !== -1) {
+      setCurrentPage(existingPageIndex + 1);
+      toast.info(`Page ${nextPageNumber} already analyzed. Navigating to it.`);
       return;
     }
 
     setIsGeneratingPage(true);
     try {
+      console.log(`Calling onGenerateNextPage for page ${nextPageNumber}`);
       await onGenerateNextPage(nextPageNumber);
-      // After successful generation, navigate to the new page
-      const newPageIndex = pageAnalyses.findIndex(p => p.pageNumber === nextPageNumber);
-      if (newPageIndex !== -1) {
-        setCurrentPage(newPageIndex + 1);
-      }
+      
+      // Wait a bit for the state to update, then find the new page
+      setTimeout(() => {
+        const newPageIndex = pageAnalyses.findIndex(p => p.pageNumber === nextPageNumber);
+        if (newPageIndex !== -1) {
+          setCurrentPage(newPageIndex + 1);
+          toast.success(`Page ${nextPageNumber} analysis completed!`);
+        } else {
+          toast.error(`Failed to generate analysis for page ${nextPageNumber}`);
+        }
+      }, 500);
+    } catch (error) {
+      console.error(`Error generating page ${nextPageNumber}:`, error);
+      toast.error(`Failed to generate page ${nextPageNumber}`);
     } finally {
       setIsGeneratingPage(false);
     }
   };
 
   const handleGeneratePreviousPage = async () => {
-    if (!onGenerateNextPage) return;
+    if (!onGenerateNextPage || !currentAnalysis) return;
     
     const previousPageNumber = currentAnalysis.pageNumber - 1;
+    console.log(`Generating previous page: ${previousPageNumber}`);
+    
     if (previousPageNumber < 1) {
       toast.error("This is the first page");
       return;
     }
     
-    const existingPage = pageAnalyses.find(p => p.pageNumber === previousPageNumber);
-    if (existingPage) {
-      const pageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
-      setCurrentPage(pageIndex + 1);
+    // Check if page already exists
+    const existingPageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
+    if (existingPageIndex !== -1) {
+      setCurrentPage(existingPageIndex + 1);
+      toast.info(`Page ${previousPageNumber} already analyzed. Navigating to it.`);
       return;
     }
 
     setIsGeneratingPage(true);
     try {
+      console.log(`Calling onGenerateNextPage for page ${previousPageNumber}`);
       await onGenerateNextPage(previousPageNumber);
-      // After successful generation, navigate to the new page
-      const newPageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
-      if (newPageIndex !== -1) {
-        setCurrentPage(newPageIndex + 1);
-      }
+      
+      // Wait a bit for the state to update, then find the new page
+      setTimeout(() => {
+        const newPageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
+        if (newPageIndex !== -1) {
+          setCurrentPage(newPageIndex + 1);
+          toast.success(`Page ${previousPageNumber} analysis completed!`);
+        } else {
+          toast.error(`Failed to generate analysis for page ${previousPageNumber}`);
+        }
+      }, 500);
+    } catch (error) {
+      console.error(`Error generating page ${previousPageNumber}:`, error);
+      toast.error(`Failed to generate page ${previousPageNumber}`);
     } finally {
       setIsGeneratingPage(false);
     }
@@ -138,12 +161,15 @@ const ComprehensivePdfResults = ({
         return;
       }
 
+      console.log("Downloading analysis for page:", currentAnalysis.pageNumber);
+      console.log("Analysis data:", currentAnalysis);
+
       const analysisData = {
         fileName: `Page ${currentAnalysis.pageNumber} Analysis`,
-        summary: currentAnalysis.summary,
-        keyPoints: currentAnalysis.keyPoints,
-        tnpscRelevance: currentAnalysis.tnpscRelevance,
-        studyPoints: currentAnalysis.studyPoints,
+        summary: currentAnalysis.summary || "No summary available",
+        keyPoints: currentAnalysis.keyPoints || [],
+        tnpscRelevance: currentAnalysis.tnpscRelevance || "No TNPSC relevance information",
+        studyPoints: currentAnalysis.studyPoints || [],
         tnpscCategories: [] // Can be extended if needed
       };
 

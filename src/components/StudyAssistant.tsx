@@ -262,7 +262,8 @@ const StudyAssistant = () => {
   const handleGenerateNextPage = async (pageNumber: number) => {
     if (!pdfInfo) return;
     
-    setIsAnalyzing(true);
+    console.log(`StudyAssistant: Generating page ${pageNumber}`);
+    
     try {
       const fullText = await extractAllPdfText(pdfInfo.file);
       const pageContent = extractPageRangeFromOcr(fullText, pageNumber, pageNumber);
@@ -272,7 +273,11 @@ const StudyAssistant = () => {
         return;
       }
       
+      console.log(`Page ${pageNumber} content length:`, pageContent.length);
+      
       const result = await analyzePdfContent(pageContent, outputLanguage);
+      
+      console.log(`Page ${pageNumber} analysis result:`, result);
       
       // Add the new page analysis to existing results
       const newPageAnalysis = {
@@ -288,30 +293,32 @@ const StudyAssistant = () => {
         tnpscRelevance: result.tnpscRelevance || ''
       };
       
-      if (comprehensiveResults) {
-        setComprehensiveResults(prev => {
-          if (!prev) return null;
-          
-          // Check if page already exists
-          const pageExists = prev.pageAnalyses.some(p => p.pageNumber === pageNumber);
-          if (pageExists) {
-            return prev; // Don't add duplicate
-          }
-          
-          return {
-            ...prev,
-            pageAnalyses: [...prev.pageAnalyses, newPageAnalysis].sort((a, b) => a.pageNumber - b.pageNumber),
-            totalKeyPoints: [...prev.totalKeyPoints, ...(result.keyPoints || [])]
-          };
-        });
-      }
+      setComprehensiveResults(prev => {
+        if (!prev) return null;
+        
+        // Check if page already exists
+        const pageExists = prev.pageAnalyses.some(p => p.pageNumber === pageNumber);
+        if (pageExists) {
+          console.log(`Page ${pageNumber} already exists, not adding duplicate`);
+          return prev; // Don't add duplicate
+        }
+        
+        console.log(`Adding new page ${pageNumber} to results`);
+        const updatedResults = {
+          ...prev,
+          pageAnalyses: [...prev.pageAnalyses, newPageAnalysis].sort((a, b) => a.pageNumber - b.pageNumber),
+          totalKeyPoints: [...prev.totalKeyPoints, ...(result.keyPoints || [])]
+        };
+        
+        console.log(`Updated results now has ${updatedResults.pageAnalyses.length} pages`);
+        return updatedResults;
+      });
       
-      toast.success(`Page ${pageNumber} analysis completed!`);
+      console.log(`Page ${pageNumber} analysis completed successfully`);
     } catch (error) {
       console.error(`Error analyzing page ${pageNumber}:`, error);
       toast.error(`Failed to analyze page ${pageNumber}. Please try again.`);
-    } finally {
-      setIsAnalyzing(false);
+      throw error; // Re-throw to be caught by the component
     }
   };
 
