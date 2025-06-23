@@ -278,7 +278,12 @@ const StudyAssistant = () => {
       const newPageAnalysis = {
         pageNumber,
         keyPoints: result.keyPoints || [],
-        studyPoints: result.studyPoints || [],
+        studyPoints: (result.studyPoints || []).map(point => ({
+          title: point.title,
+          description: point.description,
+          importance: point.importance,
+          tnpscRelevance: point.tnpscRelevance || ''
+        })),
         summary: result.summary || '',
         tnpscRelevance: result.tnpscRelevance || ''
       };
