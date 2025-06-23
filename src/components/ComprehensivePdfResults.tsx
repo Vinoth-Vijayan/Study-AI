@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, FileText, BookOpen, Target, ArrowLeft, Zap, SkipBack, SkipForward } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, BookOpen, Target, ArrowLeft, Zap, SkipBack, SkipForward, Download } from "lucide-react";
 import { 
   Pagination,
   PaginationContent,
@@ -13,6 +13,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { downloadPDF } from "@/utils/pdfUtils";
+import { toast } from "sonner";
 
 interface PageAnalysis {
   pageNumber: number;
@@ -73,14 +75,28 @@ const ComprehensivePdfResults = ({
   const handleGenerateNextPage = async () => {
     if (!onGenerateNextPage) return;
     
-    const nextPageNumber = maxAnalyzedPage + 1;
+    const nextPageNumber = currentAnalysis.pageNumber + 1;
     if (nextPageNumber > totalPdfPages) {
+      toast.error("No more pages available");
+      return;
+    }
+
+    // Check if page already exists
+    const existingPage = pageAnalyses.find(p => p.pageNumber === nextPageNumber);
+    if (existingPage) {
+      const pageIndex = pageAnalyses.findIndex(p => p.pageNumber === nextPageNumber);
+      setCurrentPage(pageIndex + 1);
       return;
     }
 
     setIsGeneratingPage(true);
     try {
       await onGenerateNextPage(nextPageNumber);
+      // After successful generation, navigate to the new page
+      const newPageIndex = pageAnalyses.findIndex(p => p.pageNumber === nextPageNumber);
+      if (newPageIndex !== -1) {
+        setCurrentPage(newPageIndex + 1);
+      }
     } finally {
       setIsGeneratingPage(false);
     }
@@ -89,10 +105,14 @@ const ComprehensivePdfResults = ({
   const handleGeneratePreviousPage = async () => {
     if (!onGenerateNextPage) return;
     
-    const previousPageNumber = Math.max(1, currentAnalysis.pageNumber - 1);
-    const alreadyAnalyzed = pageAnalyses.find(p => p.pageNumber === previousPageNumber);
+    const previousPageNumber = currentAnalysis.pageNumber - 1;
+    if (previousPageNumber < 1) {
+      toast.error("This is the first page");
+      return;
+    }
     
-    if (alreadyAnalyzed) {
+    const existingPage = pageAnalyses.find(p => p.pageNumber === previousPageNumber);
+    if (existingPage) {
       const pageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
       setCurrentPage(pageIndex + 1);
       return;
@@ -101,8 +121,42 @@ const ComprehensivePdfResults = ({
     setIsGeneratingPage(true);
     try {
       await onGenerateNextPage(previousPageNumber);
+      // After successful generation, navigate to the new page
+      const newPageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
+      if (newPageIndex !== -1) {
+        setCurrentPage(newPageIndex + 1);
+      }
     } finally {
       setIsGeneratingPage(false);
+    }
+  };
+
+  const handleDownloadAnalysis = async () => {
+    try {
+      if (!currentAnalysis) {
+        toast.error("No analysis available to download");
+        return;
+      }
+
+      const analysisData = {
+        fileName: `Page ${currentAnalysis.pageNumber} Analysis`,
+        summary: currentAnalysis.summary,
+        keyPoints: currentAnalysis.keyPoints,
+        tnpscRelevance: currentAnalysis.tnpscRelevance,
+        studyPoints: currentAnalysis.studyPoints,
+        tnpscCategories: [] // Can be extended if needed
+      };
+
+      await downloadPDF({
+        title: `Page ${currentAnalysis.pageNumber} - TNPSC Analysis`,
+        content: [analysisData],
+        type: 'analysis'
+      });
+
+      toast.success("Analysis downloaded successfully!");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download analysis");
     }
   };
 
@@ -202,46 +256,55 @@ const ComprehensivePdfResults = ({
           </Card>
 
           {/* Page Navigation Controls */}
-          {onGenerateNextPage && (
+          {onGenerateNextPage && currentAnalysis && (
             <Card className="p-6 mb-8 bg-white/80 backdrop-blur-sm shadow-lg border-0">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <SkipForward className="h-5 w-5 text-purple-600" />
-                Individual Page Generation
+                Page Navigation & Generation
               </h3>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div className="text-sm text-gray-600">
-                  Currently viewing: Page {currentAnalysis?.pageNumber || 1} of {totalPdfPages} total pages
+                  Currently viewing: Page {currentAnalysis.pageNumber} of {totalPdfPages} total pages
                   <br />
                   Analyzed pages: {pageAnalyses.map(p => p.pageNumber).sort((a, b) => a - b).join(', ')}
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleGeneratePreviousPage}
-                    disabled={isGeneratingPage || (currentAnalysis?.pageNumber || 1) <= 1}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {isGeneratingPage ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                    ) : (
-                      <SkipBack className="h-4 w-4" />
-                    )}
-                    Previous Page
-                  </Button>
-                  <Button
-                    onClick={handleGenerateNextPage}
-                    disabled={isGeneratingPage || maxAnalyzedPage >= totalPdfPages}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {isGeneratingPage ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                    ) : (
-                      <SkipForward className="h-4 w-4" />
-                    )}
-                    Next Page
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleDownloadAnalysis}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Page Analysis
+                </Button>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  onClick={handleGeneratePreviousPage}
+                  disabled={isGeneratingPage}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isGeneratingPage ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  ) : (
+                    <SkipBack className="h-4 w-4" />
+                  )}
+                  Previous Page
+                </Button>
+                <Button
+                  onClick={handleGenerateNextPage}
+                  disabled={isGeneratingPage}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isGeneratingPage ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  ) : (
+                    <SkipForward className="h-4 w-4" />
+                  )}
+                  Next Page
+                </Button>
               </div>
             </Card>
           )}

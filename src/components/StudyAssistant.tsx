@@ -289,11 +289,21 @@ const StudyAssistant = () => {
       };
       
       if (comprehensiveResults) {
-        setComprehensiveResults(prev => prev ? {
-          ...prev,
-          pageAnalyses: [...prev.pageAnalyses, newPageAnalysis].sort((a, b) => a.pageNumber - b.pageNumber),
-          totalKeyPoints: [...prev.totalKeyPoints, ...(result.keyPoints || [])]
-        } : null);
+        setComprehensiveResults(prev => {
+          if (!prev) return null;
+          
+          // Check if page already exists
+          const pageExists = prev.pageAnalyses.some(p => p.pageNumber === pageNumber);
+          if (pageExists) {
+            return prev; // Don't add duplicate
+          }
+          
+          return {
+            ...prev,
+            pageAnalyses: [...prev.pageAnalyses, newPageAnalysis].sort((a, b) => a.pageNumber - b.pageNumber),
+            totalKeyPoints: [...prev.totalKeyPoints, ...(result.keyPoints || [])]
+          };
+        });
       }
       
       toast.success(`Page ${pageNumber} analysis completed!`);
