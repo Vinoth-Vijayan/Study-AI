@@ -7,11 +7,13 @@ import AuthModal from "./AuthModal";
 
 const LandingPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
-  const handleAuthClick = (mode: "login" | "signup") => {
-    setAuthMode(mode);
+  const handleAuthClick = () => {
     setShowAuthModal(true);
+  };
+
+  const handleAuthSuccess = () => {
+    // User is now authenticated, App.tsx will handle the redirect
   };
 
   return (
@@ -31,13 +33,13 @@ const LandingPage = () => {
             <div className="flex gap-3">
               <Button 
                 variant="outline" 
-                onClick={() => handleAuthClick("login")}
+                onClick={handleAuthClick}
                 className="hidden md:flex"
               >
                 Login
               </Button>
               <Button 
-                onClick={() => handleAuthClick("signup")}
+                onClick={handleAuthClick}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 Get Started
@@ -60,7 +62,7 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg"
-              onClick={() => handleAuthClick("signup")}
+              onClick={handleAuthClick}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-3"
             >
               Start Learning Now
@@ -151,7 +153,7 @@ const LandingPage = () => {
             </p>
             <Button 
               size="lg"
-              onClick={() => handleAuthClick("signup")}
+              onClick={handleAuthClick}
               className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold"
             >
               Start Your Journey Today
@@ -185,8 +187,7 @@ const LandingPage = () => {
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
-          mode={authMode}
-          onModeChange={setAuthMode}
+          onSuccess={handleAuthSuccess}
         />
       )}
     </div>
