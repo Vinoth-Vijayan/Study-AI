@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, FileText, BookOpen, Target, ArrowLeft, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, BookOpen, Target, ArrowLeft, Zap, SkipBack, SkipForward } from "lucide-react";
 import { 
   Pagination,
   PaginationContent,
@@ -33,7 +33,9 @@ interface ComprehensivePdfResultsProps {
   totalKeyPoints: string[];
   onReset: () => void;
   onGenerateQuestions: (startPage: number, endPage: number) => void;
+  onGenerateNextPage?: (pageNumber: number) => void;
   isGeneratingQuestions: boolean;
+  totalPdfPages?: number;
 }
 
 const ComprehensivePdfResults = ({
@@ -42,14 +44,18 @@ const ComprehensivePdfResults = ({
   totalKeyPoints,
   onReset,
   onGenerateQuestions,
-  isGeneratingQuestions
+  onGenerateNextPage,
+  isGeneratingQuestions,
+  totalPdfPages = 0
 }: ComprehensivePdfResultsProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRange, setSelectedRange] = useState({ start: 1, end: Math.min(10, pageAnalyses.length) });
+  const [isGeneratingPage, setIsGeneratingPage] = useState(false);
   const itemsPerPage = 1;
   const totalPages = pageAnalyses.length;
 
   const currentAnalysis = pageAnalyses[currentPage - 1];
+  const maxAnalyzedPage = Math.max(...pageAnalyses.map(p => p.pageNumber));
 
   const getImportanceColor = (importance: string) => {
     switch (importance) {
@@ -62,6 +68,42 @@ const ComprehensivePdfResults = ({
 
   const handleGenerateQuestions = () => {
     onGenerateQuestions(selectedRange.start, selectedRange.end);
+  };
+
+  const handleGenerateNextPage = async () => {
+    if (!onGenerateNextPage) return;
+    
+    const nextPageNumber = maxAnalyzedPage + 1;
+    if (nextPageNumber > totalPdfPages) {
+      return;
+    }
+
+    setIsGeneratingPage(true);
+    try {
+      await onGenerateNextPage(nextPageNumber);
+    } finally {
+      setIsGeneratingPage(false);
+    }
+  };
+
+  const handleGeneratePreviousPage = async () => {
+    if (!onGenerateNextPage) return;
+    
+    const previousPageNumber = Math.max(1, currentAnalysis.pageNumber - 1);
+    const alreadyAnalyzed = pageAnalyses.find(p => p.pageNumber === previousPageNumber);
+    
+    if (alreadyAnalyzed) {
+      const pageIndex = pageAnalyses.findIndex(p => p.pageNumber === previousPageNumber);
+      setCurrentPage(pageIndex + 1);
+      return;
+    }
+
+    setIsGeneratingPage(true);
+    try {
+      await onGenerateNextPage(previousPageNumber);
+    } finally {
+      setIsGeneratingPage(false);
+    }
   };
 
   return (
@@ -158,6 +200,51 @@ const ComprehensivePdfResults = ({
               Selected: {selectedRange.end - selectedRange.start + 1} pages (Page {selectedRange.start} to {selectedRange.end})
             </p>
           </Card>
+
+          {/* Page Navigation Controls */}
+          {onGenerateNextPage && (
+            <Card className="p-6 mb-8 bg-white/80 backdrop-blur-sm shadow-lg border-0">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <SkipForward className="h-5 w-5 text-purple-600" />
+                Individual Page Generation
+              </h3>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Currently viewing: Page {currentAnalysis?.pageNumber || 1} of {totalPdfPages} total pages
+                  <br />
+                  Analyzed pages: {pageAnalyses.map(p => p.pageNumber).sort((a, b) => a - b).join(', ')}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleGeneratePreviousPage}
+                    disabled={isGeneratingPage || (currentAnalysis?.pageNumber || 1) <= 1}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isGeneratingPage ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    ) : (
+                      <SkipBack className="h-4 w-4" />
+                    )}
+                    Previous Page
+                  </Button>
+                  <Button
+                    onClick={handleGenerateNextPage}
+                    disabled={isGeneratingPage || maxAnalyzedPage >= totalPdfPages}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isGeneratingPage ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    ) : (
+                      <SkipForward className="h-4 w-4" />
+                    )}
+                    Next Page
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Page-wise Analysis */}
           {currentAnalysis && (

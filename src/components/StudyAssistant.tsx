@@ -259,6 +259,47 @@ const StudyAssistant = () => {
     }
   };
 
+  const handleGenerateNextPage = async (pageNumber: number) => {
+    if (!pdfInfo) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const fullText = await extractAllPdfText(pdfInfo.file);
+      const pageContent = extractPageRangeFromOcr(fullText, pageNumber, pageNumber);
+      
+      if (!pageContent.trim()) {
+        toast.error(`No content found on page ${pageNumber}`);
+        return;
+      }
+      
+      const result = await analyzePdfContent(pageContent, outputLanguage);
+      
+      // Add the new page analysis to existing results
+      const newPageAnalysis = {
+        pageNumber,
+        keyPoints: result.keyPoints || [],
+        studyPoints: result.studyPoints || [],
+        summary: result.summary || '',
+        tnpscRelevance: result.tnpscRelevance || ''
+      };
+      
+      if (comprehensiveResults) {
+        setComprehensiveResults(prev => prev ? {
+          ...prev,
+          pageAnalyses: [...prev.pageAnalyses, newPageAnalysis].sort((a, b) => a.pageNumber - b.pageNumber),
+          totalKeyPoints: [...prev.totalKeyPoints, ...(result.keyPoints || [])]
+        } : null);
+      }
+      
+      toast.success(`Page ${pageNumber} analysis completed!`);
+    } catch (error) {
+      console.error(`Error analyzing page ${pageNumber}:`, error);
+      toast.error(`Failed to analyze page ${pageNumber}. Please try again.`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const startQuickAnalysis = () => {
     if (selectedFiles.length === 0) {
       toast.error("Please select files first");
@@ -342,7 +383,9 @@ const StudyAssistant = () => {
         totalKeyPoints={comprehensiveResults.totalKeyPoints}
         onReset={resetToUpload}
         onGenerateQuestions={handleComprehensiveQuizGeneration}
+        onGenerateNextPage={handleGenerateNextPage}
         isGeneratingQuestions={isGeneratingQuestions}
+        totalPdfPages={pdfInfo?.totalPages || 0}
       />
     );
   }

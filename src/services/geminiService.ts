@@ -550,6 +550,105 @@ Focus on:
   }
 };
 
+export const analyzeIndividualPage = async (
+  textContent: string,
+  pageNumber: number,
+  outputLanguage: "english" | "tamil" = "english"
+): Promise<{
+  pageNumber: number;
+  keyPoints: string[];
+  studyPoints: Array<{
+    title: string;
+    description: string;
+    importance: "high" | "medium" | "low";
+    tnpscRelevance: string;
+  }>;
+  summary: string;
+  tnpscRelevance: string;
+}> => {
+  try {
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide all responses in Tamil language."
+      : "Please provide all responses in English language.";
+
+    const prompt = `
+Analyze this individual PDF page content for TNPSC exam preparation:
+
+${languageInstruction}
+
+Page ${pageNumber} Content: ${textContent.substring(0, 4000)}
+
+Please provide detailed analysis in JSON format:
+{
+  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"],
+  "studyPoints": [
+    {
+      "title": "Study point title",
+      "description": "Detailed description",
+      "importance": "high/medium/low",
+      "tnpscRelevance": "TNPSC relevance explanation"
+    }
+  ],
+  "summary": "Brief summary of the page content",
+  "tnpscRelevance": "How this content relates to TNPSC exams"
+}
+
+Focus on:
+- Extract at least 5 comprehensive key points
+- Detailed study points with TNPSC relevance
+- Important facts and concepts
+- Key information for study
+`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2000,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!content) {
+      throw new Error('No content received from Gemini API');
+    }
+
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const analysis = JSON.parse(cleanedContent);
+    
+    return {
+      pageNumber,
+      keyPoints: analysis.keyPoints || [],
+      studyPoints: analysis.studyPoints || [],
+      summary: analysis.summary || '',
+      tnpscRelevance: analysis.tnpscRelevance || ''
+    };
+  } catch (error) {
+    console.error(`Error analyzing page ${pageNumber}:`, error);
+    throw error;
+  }
+};
+
 const convertToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
