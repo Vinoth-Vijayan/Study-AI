@@ -3,13 +3,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Image, Settings, Languages, Brain, Zap } from "lucide-react";
-import { analyzeImage, analyzeMultipleImages } from "@/services/geminiService";
+import { analyzeImage, analyzeMultipleImages, analyzePdfContent } from "@/services/geminiService";
+import { extractAllPdfText, findTotalPagesFromOcr, extractPageRangeFromOcr } from "@/utils/pdfReader";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import AnalysisResults from "./AnalysisResults";
 import QuestionResults from "./QuestionResults";
 import ModernQuizMode from "./ModernQuizMode";
 import QuickAnalysisMode from "./QuickAnalysisMode";
+import PdfPageSelector from "./PdfPageSelector";
 
 export interface AnalysisResult {
   keyPoints: string[];
@@ -61,9 +63,10 @@ const StudyAssistant = () => {
     clearAppState
   } = useAppContext();
 
-  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis">("upload");
+  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [pdfInfo, setPdfInfo] = useState<{file: File; totalPages: number} | null>(null);
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
@@ -86,6 +89,30 @@ const StudyAssistant = () => {
       return;
     }
 
+    // Check if there's a PDF file
+    const pdfFile = selectedFiles.find(file => file.type === 'application/pdf');
+    if (pdfFile) {
+      try {
+        const fullText = await extractAllPdfText(pdfFile);
+        const totalPages = findTotalPagesFromOcr(fullText);
+        
+        if (totalPages > 0) {
+          setPdfInfo({ file: pdfFile, totalPages });
+          setCurrentView("pdf-page-select");
+          return;
+        } else {
+          // Fallback to regular PDF analysis if no OCR markers found
+          toast.info("No page markers found. Analyzing entire PDF...");
+          await analyzePdfFile(pdfFile);
+        }
+      } catch (error) {
+        console.error("PDF analysis error:", error);
+        toast.error("Failed to analyze PDF. Please try again.");
+      }
+      return;
+    }
+
+    // Handle image files
     setIsAnalyzing(true);
     try {
       const results: AnalysisResult[] = [];
@@ -109,6 +136,45 @@ const StudyAssistant = () => {
       toast.error("Failed to analyze files. Please try again.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const analyzePdfFile = async (file: File, startPage?: number, endPage?: number) => {
+    setIsAnalyzing(true);
+    try {
+      const fullText = await extractAllPdfText(file);
+      let contentToAnalyze = fullText;
+      
+      if (startPage && endPage) {
+        contentToAnalyze = extractPageRangeFromOcr(fullText, startPage, endPage);
+        toast.info(`Analyzing pages ${startPage} to ${endPage}...`);
+      }
+      
+      const result = await analyzePdfContent(contentToAnalyze, outputLanguage);
+      setAnalysisResults([{
+        ...result,
+        language: outputLanguage,
+        mainTopic: `${file.name} ${startPage && endPage ? `(Pages ${startPage}-${endPage})` : ''}`
+      }]);
+      setCurrentView("analysis");
+      toast.success("PDF analysis completed successfully!");
+    } catch (error) {
+      console.error("PDF analysis error:", error);
+      toast.error("Failed to analyze PDF. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handlePdfPageRangeSelect = (startPage: number, endPage: number) => {
+    if (pdfInfo) {
+      analyzePdfFile(pdfInfo.file, startPage, endPage);
+    }
+  };
+
+  const handlePdfAnalyzeAll = () => {
+    if (pdfInfo) {
+      analyzePdfFile(pdfInfo.file);
     }
   };
 
@@ -204,6 +270,48 @@ const StudyAssistant = () => {
         onStartQuiz={startQuizFromAnalysis}
         isGeneratingQuestions={isGeneratingQuestions}
       />
+    );
+  }
+
+  if (currentView === "pdf-page-select" && pdfInfo) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full">
+                  <Brain className="h-8 w-8 text-white" />
+                </div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  PDF Page Selection
+                </h1>
+              </div>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Choose which pages you want to analyze for TNPSC preparation
+              </p>
+            </div>
+
+            <PdfPageSelector
+              fileName={pdfInfo.file.name}
+              totalPages={pdfInfo.totalPages}
+              onPageRangeSelect={handlePdfPageRangeSelect}
+              onAnalyzeAll={handlePdfAnalyzeAll}
+              isAnalyzing={isAnalyzing}
+            />
+
+            <div className="mt-6 text-center">
+              <Button
+                onClick={resetToUpload}
+                variant="outline"
+                className="border-2"
+              >
+                Back to Upload
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 

@@ -307,6 +307,99 @@ Focus on:
   }
 };
 
+export const analyzePdfContent = async (
+  textContent: string,
+  outputLanguage: "english" | "tamil" = "english"
+): Promise<AnalysisResult> => {
+  try {
+    const languageInstruction = outputLanguage === "tamil" 
+      ? "Please provide all responses in Tamil language. Use Tamil script for all content."
+      : "Please provide all responses in English language.";
+
+    const prompt = `
+Analyze this PDF text content for TNPSC (Tamil Nadu Public Service Commission) exam preparation.
+
+${languageInstruction}
+
+Content: ${textContent.substring(0, 8000)}
+
+Please provide a comprehensive analysis in the following JSON format:
+{
+  "mainTopic": "Main topic of the content",
+  "studyPoints": [
+    {
+      "title": "Key point title",
+      "description": "Detailed description",
+      "importance": "high/medium/low",
+      "tnpscRelevance": "TNPSC relevance explanation"
+    }
+  ],
+  "keyPoints": ["Key point 1", "Key point 2", ...],
+  "summary": "Overall summary of the content",
+  "tnpscRelevance": "How this content is relevant for TNPSC exams",
+  "tnpscCategories": ["Category1", "Category2", ...],
+  "difficulty": "easy/medium/hard"
+}
+
+Focus on:
+- TNPSC Group 1, 2, 4 exam relevance
+- Key facts and figures
+- Important dates, names, places
+- Conceptual understanding
+- Application in exam context
+`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!content) {
+      throw new Error('No content received from Gemini API');
+    }
+
+    console.log('Raw PDF analysis response:', content);
+
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const result = JSON.parse(cleanedContent);
+    
+    return {
+      keyPoints: result.keyPoints || [],
+      summary: result.summary || '',
+      tnpscRelevance: result.tnpscRelevance || '',
+      studyPoints: result.studyPoints || [],
+      tnpscCategories: result.tnpscCategories || []
+    };
+  } catch (error) {
+    console.error('Error analyzing PDF content:', error);
+    throw error;
+  }
+};
+
 const convertToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
