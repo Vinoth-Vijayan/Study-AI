@@ -13,6 +13,7 @@ import ModernQuizMode from "./ModernQuizMode";
 import QuickAnalysisMode from "./QuickAnalysisMode";
 import PdfPageSelector from "./PdfPageSelector";
 import ComprehensivePdfResults from "./ComprehensivePdfResults";
+import PdfPageNavigator from "./PdfPageNavigator";
 
 export interface AnalysisResult {
   keyPoints: string[];
@@ -65,9 +66,11 @@ const StudyAssistant = () => {
   } = useAppContext();
 
   const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select" | "comprehensive-pdf">("upload");
+  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select" | "comprehensive-pdf" | "pdf-navigator">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [pdfInfo, setPdfInfo] = useState<{file: File; totalPages: number} | null>(null);
+  const [pdfFullText, setPdfFullText] = useState<string>("");
   const [comprehensiveResults, setComprehensiveResults] = useState<{
     pageAnalyses: Array<{
       pageNumber: number;
@@ -116,6 +119,7 @@ const StudyAssistant = () => {
         
         if (totalPages > 0) {
           setPdfInfo({ file: pdfFile, totalPages });
+          setPdfFullText(fullText);
           setCurrentView("pdf-page-select");
           return;
         } else {
@@ -204,7 +208,7 @@ const StudyAssistant = () => {
 
   const handlePdfPageRangeSelect = (startPage: number, endPage: number) => {
     if (pdfInfo) {
-      analyzePdfFile(pdfInfo.file, startPage, endPage);
+      setCurrentView("pdf-navigator");
     }
   };
 
@@ -338,6 +342,30 @@ const StudyAssistant = () => {
     setCurrentView("quiz");
   };
 
+  const handlePdfNavigatorQuiz = async (pageRange: { start: number; end: number }, difficulty: string) => {
+    if (!pdfInfo) return;
+    
+    setIsGeneratingQuestions(true);
+    try {
+      const contentToAnalyze = extractPageRangeFromOcr(pdfFullText, pageRange.start, pageRange.end);
+      
+      const analysisResult = await analyzePdfContent(contentToAnalyze, outputLanguage);
+      const result = await generateQuestionsFromService([analysisResult], difficulty, outputLanguage);
+      
+      setQuestionResult({
+        ...result,
+        totalQuestions: result.questions?.length || 0
+      });
+      setCurrentView("questions");
+      toast.success("Questions generated successfully!");
+    } catch (error) {
+      console.error("Question generation error:", error);
+      toast.error("Failed to generate questions. Please try again.");
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
+  };
+
   const resetToUpload = () => {
     clearAppState();
     setCurrentView("upload");
@@ -408,6 +436,19 @@ const StudyAssistant = () => {
         onGenerateNextPage={handleGenerateNextPage}
         isGeneratingQuestions={isGeneratingQuestions}
         totalPdfPages={pdfInfo?.totalPages || 0}
+      />
+    );
+  }
+
+  if (currentView === "pdf-navigator" && pdfInfo) {
+    return (
+      <PdfPageNavigator
+        file={pdfInfo.file}
+        totalPages={pdfInfo.totalPages}
+        fullText={pdfFullText}
+        outputLanguage={outputLanguage}
+        onReset={resetToUpload}
+        onStartQuiz={handlePdfNavigatorQuiz}
       />
     );
   }

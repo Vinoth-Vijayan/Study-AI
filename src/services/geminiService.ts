@@ -580,7 +580,7 @@ Page ${pageNumber} Content: ${textContent.substring(0, 4000)}
 
 Please provide detailed analysis in JSON format:
 {
-  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"],
+  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5", "Key point 6", "Key point 7", "Key point 8"],
   "studyPoints": [
     {
       "title": "Study point title",
@@ -594,10 +594,14 @@ Please provide detailed analysis in JSON format:
 }
 
 Focus on:
-- Extract at least 5 comprehensive key points
+- Extract at least 8 comprehensive key points per page
 - Detailed study points with TNPSC relevance
 - Important facts and concepts
 - Key information for study
+- Names, dates, places, events
+- Definitions and explanations
+- Statistical data and figures
+- Historical context and significance
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
@@ -617,7 +621,7 @@ Focus on:
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 3000,
         }
       })
     });

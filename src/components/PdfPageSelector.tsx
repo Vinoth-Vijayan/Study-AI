@@ -53,7 +53,7 @@ const PdfPageSelector = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleQuickSelect(5)}
+                onClick={() => onPageRangeSelect(1, Math.min(5, totalPages))}
                 className="text-sm"
               >
                 First 5 Pages
@@ -61,7 +61,7 @@ const PdfPageSelector = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleQuickSelect(10)}
+                onClick={() => onPageRangeSelect(1, Math.min(10, totalPages))}
                 className="text-sm"
               >
                 First 10 Pages
@@ -69,7 +69,7 @@ const PdfPageSelector = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleQuickSelect(25)}
+                onClick={() => onPageRangeSelect(1, Math.min(25, totalPages))}
                 className="text-sm"
               >
                 First 25 Pages
@@ -77,11 +77,11 @@ const PdfPageSelector = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onAnalyzeAll}
+                onClick={() => onPageRangeSelect(1, totalPages)}
                 disabled={isAnalyzing}
                 className="text-sm"
               >
-                All Pages
+                Page Navigator
               </Button>
             </div>
           </div>
@@ -133,17 +133,17 @@ const PdfPageSelector = ({
                 </div>
 
                 <Button
-                  onClick={handleRangeAnalysis}
+                  onClick={onAnalyzeAll}
                   disabled={isAnalyzing}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 >
                   {isAnalyzing ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Analyzing Pages {startPage}-{endPage}...
+                      Comprehensive Analysis...
                     </>
                   ) : (
-                    `Analyze Pages ${startPage}-${endPage}`
+                    `Comprehensive Analysis (All Pages)`
                   )}
                 </Button>
               </div>
