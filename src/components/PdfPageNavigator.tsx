@@ -15,7 +15,8 @@ import {
   Target,
   Lightbulb,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Award
 } from "lucide-react";
 import { analyzeIndividualPage } from "@/services/geminiService";
 import { extractPageRangeFromOcr } from "@/utils/pdfReader";
