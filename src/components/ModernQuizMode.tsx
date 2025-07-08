@@ -191,25 +191,31 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
 
   if (quizCompleted && quizResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        </div>
+        
         <div className="container mx-auto px-4 py-6">
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-4xl mx-auto space-y-6 relative z-10">
             {/* Results Header */}
-            <Card className="p-8 bg-white/90 backdrop-blur-sm shadow-2xl border-0">
+            <Card className="glass-card p-8 animate-fadeInScale hover-lift">
               <div className="text-center space-y-6">
                 <div className="flex items-center justify-center gap-4 mb-6">
-                  <div className="p-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 shadow-xl">
+                  <div className="p-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 shadow-elegant pulse-glow">
                     <Trophy className="h-10 w-10 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold gradient-text-warm">
                       Quiz Complete!
                     </h1>
                     <p className="text-gray-600 mt-2">TNPSC Practice Results</p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-2xl border border-blue-100">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-2xl border border-blue-100 shadow-elegant">
                   <div className={`text-7xl font-bold mb-4 ${getScoreColor(quizResult.percentage)}`}>
                     {quizResult.percentage}%
                   </div>
@@ -220,7 +226,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                     {getPerformanceMessage(quizResult.percentage)}
                   </div>
 
-                  <div className="flex justify-center gap-6 text-sm text-gray-600">
+                  <div className="flex justify-center gap-6 text-sm text-gray-600 stagger-animation">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
                       <span>Time: {getTimeTaken()}</span>
@@ -235,23 +241,21 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     onClick={handleDownloadResults} 
-                    variant="outline" 
-                    className="px-6 py-3 border-2 hover:bg-blue-50"
+                    className="btn-secondary px-6 py-3"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download Results
                   </Button>
                   <Button 
                     onClick={onBackToAnalysis} 
-                    variant="outline" 
-                    className="px-6 py-3 border-2 hover:bg-gray-50"
+                    className="btn-secondary px-6 py-3"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Analysis
                   </Button>
                   <Button 
                     onClick={onReset} 
-                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-600"
+                    className="btn-primary px-6 py-3"
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
                     New Quiz
@@ -262,25 +266,25 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
 
             {/* Answer Review */}
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <h2 className="text-2xl font-bold gradient-text flex items-center gap-2">
                 <Target className="h-6 w-6 text-blue-600" />
                 Answer Review
               </h2>
               
               {quizResult.answers.map((answer, index) => (
-                <Card key={index} className={`p-6 shadow-lg border-0 ${
+                <Card key={index} className={`glass-card p-6 hover-lift animate-fadeInUp ${
                   answer.isCorrect 
                     ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-l-green-500' 
                     : 'bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-l-red-500'
-                }`}>
+                }`} style={{animationDelay: `${index * 0.1}s`}}>
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${answer.isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
                           {answer.isCorrect ? (
-                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <CheckCircle className="h-5 w-5 text-green-600 animate-pulse" />
                           ) : (
-                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <AlertTriangle className="h-5 w-5 text-red-600 animate-pulse" />
                           )}
                         </div>
                         <span className="text-lg font-semibold text-gray-800">
@@ -291,20 +295,23 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                         <Badge className={`bg-gradient-to-r ${getDifficultyColor(answer.question.difficulty)} text-white`}>
                           {answer.question.difficulty.toUpperCase()}
                         </Badge>
-                        <Badge variant="outline">
+                        <Badge className="badge-elegant bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200">
                           {answer.question.tnpscGroup}
+                        </Badge>
+                        <Badge className="badge-elegant bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border-purple-200">
+                          {answer.question.type.toUpperCase()}
                         </Badge>
                       </div>
                     </div>
                     
-                    <div className="bg-white/70 p-4 rounded-xl">
+                    <div className="bg-white/70 p-4 rounded-xl shadow-sm">
                       <p className="text-gray-800 text-lg leading-relaxed">{answer.question.question}</p>
                     </div>
                     
                     <div className="space-y-3">
                       <div className={`p-4 rounded-xl ${
                         answer.isCorrect ? 'bg-green-100 border border-green-200' : 'bg-red-100 border border-red-200'
-                      }`}>
+                      } shadow-sm`}>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-gray-700">Your Answer:</span>
                           <span className={`font-medium ${answer.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
@@ -314,7 +321,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                       </div>
                       
                       {!answer.isCorrect && (
-                        <div className="p-4 bg-green-100 border border-green-200 rounded-xl">
+                        <div className="p-4 bg-green-100 border border-green-200 rounded-xl shadow-sm">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-700">Correct Answer:</span>
                             <span className="font-medium text-green-700">{answer.correctAnswer}</span>
@@ -323,7 +330,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                       )}
 
                       {answer.question.explanation && (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
                           <div className="flex items-start gap-2">
                             <span className="font-semibold text-gray-700">Explanation:</span>
                             <span className="text-blue-700">{answer.question.explanation}</span>
