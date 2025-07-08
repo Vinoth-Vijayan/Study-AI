@@ -65,7 +65,7 @@ const StudyAssistant = () => {
     clearAppState
   } = useAppContext();
 
-  const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select" | "comprehensive-pdf">("upload");
+  // FIX: Removed the duplicate declaration of currentView state.
   const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select" | "comprehensive-pdf" | "pdf-navigator">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
