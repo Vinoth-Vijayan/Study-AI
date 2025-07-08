@@ -496,24 +496,31 @@ const StudyAssistant = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '4s'}}></div>
+      </div>
+      
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
+        <div className="max-w-4xl mx-auto relative z-10">
+          <div className="text-center mb-8 animate-fadeInUp">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-elegant pulse-glow">
                 <Brain className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-6xl font-bold gradient-text">
                 Ram's AI
               </h1>
             </div>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Upload your study materials and get AI-powered analysis, key points, and practice questions for TNPSC preparation
             </p>
           </div>
 
-          <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-2xl border-0 mb-8">
+          <Card className="glass-card p-8 mb-8 animate-fadeInScale hover-lift">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
@@ -523,7 +530,7 @@ const StudyAssistant = () => {
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value)}
-                    className="w-full p-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                    className="input-elegant"
                   >
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
@@ -539,7 +546,7 @@ const StudyAssistant = () => {
                   <select
                     value={outputLanguage}
                     onChange={(e) => setOutputLanguage(e.target.value as "english" | "tamil")}
-                    className="w-full p-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                    className="input-elegant"
                   >
                     <option value="english">English</option>
                     <option value="tamil">தமிழ் (Tamil)</option>
@@ -547,7 +554,7 @@ const StudyAssistant = () => {
                 </div>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-all duration-300 hover:bg-blue-50/50 hover:shadow-lg">
                 <input
                   type="file"
                   multiple
@@ -557,7 +564,7 @@ const StudyAssistant = () => {
                   id="file-upload"
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4 icon-bounce" />
                   <p className="text-lg font-medium text-gray-700 mb-2">
                     Upload Your Study Materials
                   </p>
@@ -570,11 +577,11 @@ const StudyAssistant = () => {
               {selectedFiles.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-semibold text-gray-800">
-                    Selected Files ({selectedFiles.length})
+                    <span className="gradient-text">Selected Files ({selectedFiles.length})</span>
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 stagger-animation">
                     {selectedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div key={index} className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg hover-lift shadow-sm">
                         {file.type.startsWith('image/') ? (
                           <Image className="h-5 w-5 text-blue-600" />
                         ) : (
@@ -591,7 +598,7 @@ const StudyAssistant = () => {
                     <Button
                       onClick={analyzeFiles}
                       disabled={isAnalyzing}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-lg font-semibold"
+                      className="flex-1 btn-primary py-6 text-lg"
                     >
                       {isAnalyzing ? (
                         <>
@@ -608,8 +615,7 @@ const StudyAssistant = () => {
 
                     <Button
                       onClick={startQuickAnalysis}
-                      variant="outline"
-                      className="flex-1 border-2 border-green-500 text-green-600 hover:bg-green-50 py-6 text-lg font-semibold"
+                      className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-6 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border-0 rounded-xl"
                     >
                       <Zap className="h-5 w-5 mr-3" />
                       Quick Quiz

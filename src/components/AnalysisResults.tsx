@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,11 +43,17 @@ const AnalysisResults = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
+      
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6 relative z-10">
           {/* Header */}
-          <Card className="p-4 md:p-6 bg-white/90 backdrop-blur-sm shadow-xl border-0">
+          <Card className="glass-card p-4 md:p-6 animate-fadeInUp hover-lift">
             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
@@ -65,15 +70,15 @@ const AnalysisResults = ({
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Brain className="h-5 w-5 text-blue-600" />
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                    <h2 className="text-xl md:text-2xl font-bold gradient-text">
                       {result.mainTopic || "TNPSC Study Analysis"}
                     </h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                    <Badge className="badge-elegant badge-success">
                       Source Files: {selectedFiles.length}
                     </Badge>
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                    <Badge className="badge-elegant badge-success">
                       Analysis Complete
                     </Badge>
                   </div>
@@ -83,7 +88,7 @@ const AnalysisResults = ({
                   <Button
                     onClick={onGenerateQuestions}
                     disabled={isGeneratingQuestions}
-                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 flex-1"
+                    className="btn-primary flex-1"
                   >
                     {isGeneratingQuestions ? (
                       <>
@@ -100,8 +105,7 @@ const AnalysisResults = ({
                   
                   <Button
                     onClick={handleDownloadAnalysis}
-                    variant="outline"
-                    className="border-2 hover:bg-gray-50"
+                    className="btn-secondary"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download Analysis
@@ -131,15 +135,15 @@ const AnalysisResults = ({
 
           {/* Key Points */}
           {result.keyPoints && result.keyPoints.length > 0 && (
-            <Card className="p-4 md:p-6 bg-white/90 backdrop-blur-sm shadow-lg border-0">
+            <Card className="glass-card p-4 md:p-6 animate-fadeInUp hover-lift" style={{animationDelay: '0.1s'}}>
               <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-green-600" />
-                Key Points
+                <span className="gradient-text">Key Points</span>
               </h3>
-              <div className="grid gap-3">
+              <div className="grid gap-3 stagger-animation">
                 {result.keyPoints.map((point, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
+                  <div key={index} className="flex items-start gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg hover-lift">
+                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 shadow-md">
                       {index + 1}
                     </div>
                     <p className="text-gray-700 leading-relaxed">{point}</p>
@@ -151,36 +155,36 @@ const AnalysisResults = ({
 
           {/* Summary */}
           {result.summary && (
-            <Card className="p-4 md:p-6 bg-white/90 backdrop-blur-sm shadow-lg border-0">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Summary</h3>
+            <Card className="glass-card p-4 md:p-6 animate-fadeInUp hover-lift" style={{animationDelay: '0.2s'}}>
+              <h3 className="text-lg font-semibold gradient-text mb-4">Summary</h3>
               <p className="text-gray-700 leading-relaxed">{result.summary}</p>
             </Card>
           )}
 
           {/* TNPSC Relevance */}
           {result.tnpscRelevance && (
-            <Card className="p-4 md:p-6 bg-gradient-to-r from-purple-50 to-blue-50 shadow-lg border-0">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">TNPSC Relevance</h3>
+            <Card className="glass-card p-4 md:p-6 bg-gradient-to-r from-purple-50 to-blue-50 animate-fadeInUp hover-lift" style={{animationDelay: '0.3s'}}>
+              <h3 className="text-lg font-semibold gradient-text mb-4">TNPSC Relevance</h3>
               <p className="text-gray-700 leading-relaxed">{result.tnpscRelevance}</p>
             </Card>
           )}
 
           {/* Study Points */}
           {result.studyPoints && result.studyPoints.length > 0 && (
-            <Card className="p-4 md:p-6 bg-white/90 backdrop-blur-sm shadow-lg border-0">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Study Points</h3>
+            <Card className="glass-card p-4 md:p-6 animate-fadeInUp hover-lift" style={{animationDelay: '0.4s'}}>
+              <h3 className="text-lg font-semibold gradient-text mb-4">Study Points</h3>
               <div className="space-y-4">
                 {result.studyPoints.map((point, index) => (
-                  <div key={index} className="border-l-4 border-blue-500 pl-4">
+                  <div key={index} className="border-l-4 border-gradient-to-b from-blue-500 to-purple-600 pl-4 hover-lift">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                       <h4 className="font-semibold text-gray-800">{point.title}</h4>
                       <Badge 
                         className={
                           point.importance === 'high' 
-                            ? 'bg-red-100 text-red-700 hover:bg-red-100' 
+                            ? 'badge-elegant badge-error' 
                             : point.importance === 'medium'
-                            ? 'bg-orange-100 text-orange-700 hover:bg-orange-100'
-                            : 'bg-green-100 text-green-700 hover:bg-green-100'
+                            ? 'badge-elegant badge-warning'
+                            : 'badge-elegant badge-success'
                         }
                       >
                         {point.importance} priority
@@ -188,7 +192,7 @@ const AnalysisResults = ({
                     </div>
                     <p className="text-gray-700 mb-2">{point.description}</p>
                     {point.tnpscRelevance && (
-                      <p className="text-sm text-purple-700 bg-purple-50 p-2 rounded">
+                      <p className="text-sm text-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50 p-2 rounded-lg">
                         <strong>TNPSC Context:</strong> {point.tnpscRelevance}
                       </p>
                     )}
@@ -200,11 +204,11 @@ const AnalysisResults = ({
 
           {/* TNPSC Categories */}
           {result.tnpscCategories && result.tnpscCategories.length > 0 && (
-            <Card className="p-4 md:p-6 bg-white/90 backdrop-blur-sm shadow-lg border-0">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">TNPSC Categories</h3>
+            <Card className="glass-card p-4 md:p-6 animate-fadeInUp hover-lift" style={{animationDelay: '0.5s'}}>
+              <h3 className="text-lg font-semibold gradient-text mb-4">TNPSC Categories</h3>
               <div className="flex flex-wrap gap-2">
                 {result.tnpscCategories.map((category, index) => (
-                  <Badge key={index} variant="outline" className="text-sm">
+                  <Badge key={index} className="badge-elegant bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 border-indigo-200 text-sm">
                     {category}
                   </Badge>
                 ))}
