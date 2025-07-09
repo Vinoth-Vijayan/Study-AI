@@ -33,6 +33,13 @@ Please provide a comprehensive analysis in the following JSON format:
   "tnpscCategories": ["Category1", "Category2", ...],
   "difficulty": "easy/medium/hard"
 }
+
+Focus on:
+- TNPSC Group 1, 2, 4 exam relevance
+- Key facts and figures
+- Important dates, names, places
+- Conceptual understanding
+- Application in exam context
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
@@ -475,6 +482,13 @@ Please provide a comprehensive analysis in the following JSON format:
   "tnpscCategories": ["Category1", "Category2", ...],
   "difficulty": "easy/medium/hard"
 }
+
+Focus on:
+- TNPSC Group 1, 2, 4 exam relevance
+- Key facts and figures
+- Important dates, names, places
+- Conceptual understanding
+- Application in exam context
 `;
 
     const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
