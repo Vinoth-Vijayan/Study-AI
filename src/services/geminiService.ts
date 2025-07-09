@@ -34,12 +34,6 @@ Please provide a comprehensive analysis in the following JSON format:
   "difficulty": "easy/medium/hard"
 }
 
-Focus on:
-- TNPSC Group 1, 2, 4 exam relevance
-- Key facts and figures
-- Important dates, names, places
-- Conceptual understanding
-- Application in exam context
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
@@ -121,12 +115,7 @@ Based on the following TNPSC study content, generate 15-20 comprehensive questio
 
 Content Analysis:
 ${combinedContent.map((content, index) => `
-Analysis ${index + 1}:
-Key Points: ${content.keyPoints}
-Summary: ${content.summary}
 TNPSC Relevance: ${content.tnpscRelevance}
-`).join('\n')}
-
 Difficulty Level: ${difficulty}
 ${languageInstruction}
 
@@ -148,10 +137,7 @@ Return as a JSON array:
   }
 ]
 
-Ensure questions test:
 - Factual knowledge
-- Conceptual understanding  
-- Application ability
 - TNPSC exam pattern relevance
 `;
 
@@ -491,12 +477,6 @@ Please provide a comprehensive analysis in the following JSON format:
   "difficulty": "easy/medium/hard"
 }
 
-Focus on:
-- TNPSC Group 1, 2, 4 exam relevance
-- Key facts and figures
-- Important dates, names, places
-- Conceptual understanding
-- Application in exam context
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {

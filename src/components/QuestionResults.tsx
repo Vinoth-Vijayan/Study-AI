@@ -42,10 +42,8 @@ const QuestionResults = ({ result, onReset, selectedFiles, onStartQuiz }: Questi
     switch (type) {
       case 'mcq':
         return '📝';
-      case 'true_false':
-        return '✅';
-      case 'short_answer':
-        return '📋';
+      case 'assertion_reason':
+        return '🔗';
       default:
         return '❓';
     }

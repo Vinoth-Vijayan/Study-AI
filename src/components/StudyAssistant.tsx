@@ -30,6 +30,8 @@ export interface StudyPoint {
   description: string;
   importance: "high" | "medium" | "low";
   tnpscRelevance?: string;
+  tnpscPriority?: "high" | "medium" | "low";
+  memoryTip?: string;
 }
 
 export interface Question {

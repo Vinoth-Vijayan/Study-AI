@@ -178,22 +178,42 @@ const AnalysisResults = ({
                   <div key={index} className="border-l-4 border-gradient-to-b from-blue-500 to-purple-600 pl-4 hover-lift">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                       <h4 className="font-semibold text-gray-800">{point.title}</h4>
-                      <Badge 
-                        className={
-                          point.importance === 'high' 
-                            ? 'badge-elegant badge-error' 
-                            : point.importance === 'medium'
-                            ? 'badge-elegant badge-warning'
-                            : 'badge-elegant badge-success'
-                        }
-                      >
-                        {point.importance} priority
-                      </Badge>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge 
+                          className={
+                            point.importance === 'high' 
+                              ? 'badge-elegant badge-error' 
+                              : point.importance === 'medium'
+                              ? 'badge-elegant badge-warning'
+                              : 'badge-elegant badge-success'
+                          }
+                        >
+                          {point.importance} priority
+                        </Badge>
+                        {point.tnpscPriority && (
+                          <Badge 
+                            className={
+                              point.tnpscPriority === 'high' 
+                                ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white' 
+                                : point.tnpscPriority === 'medium'
+                                ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white'
+                                : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
+                            }
+                          >
+                            TNPSC {point.tnpscPriority}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <p className="text-gray-700 mb-2">{point.description}</p>
                     {point.tnpscRelevance && (
                       <p className="text-sm text-purple-700 bg-gradient-to-r from-purple-50 to-indigo-50 p-2 rounded-lg">
                         <strong>TNPSC Context:</strong> {point.tnpscRelevance}
+                      </p>
+                    )}
+                    {point.memoryTip && (
+                      <p className="text-sm text-green-700 bg-gradient-to-r from-green-50 to-emerald-50 p-2 rounded-lg mt-2">
+                        <strong>💡 Memory Tip:</strong> {point.memoryTip}
                       </p>
                     )}
                   </div>

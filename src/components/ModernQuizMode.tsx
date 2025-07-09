@@ -62,10 +62,8 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
     switch (type) {
       case 'mcq':
         return '📝';
-      case 'true_false':
-        return '✅';
-      case 'short_answer':
-        return '📋';
+      case 'assertion_reason':
+        return '🔗';
       default:
         return '❓';
     }
@@ -411,7 +409,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                 <p className="text-gray-800 text-lg leading-relaxed">{currentQuestion?.question}</p>
               </div>
               
-              {currentQuestion?.type === 'mcq' && currentQuestion.options ? (
+              {(currentQuestion?.type === 'mcq' || currentQuestion?.type === 'assertion_reason') && currentQuestion.options ? (
                 <RadioGroup value={selectedOption} onValueChange={handleAnswerSelect}>
                   <div className="space-y-4">
                     {currentQuestion.options.map((option, index) => (
@@ -439,46 +437,7 @@ const ModernQuizMode = ({ result, onReset, onBackToAnalysis, difficulty, outputL
                     ))}
                   </div>
                 </RadioGroup>
-              ) : currentQuestion?.type === 'true_false' ? (
-                <RadioGroup value={selectedOption} onValueChange={handleAnswerSelect}>
-                  <div className="space-y-4">
-                    {['True', 'False'].map((option, index) => (
-                      <div key={option} className="group">
-                        <div className={`flex items-center space-x-4 p-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer hover:shadow-md ${
-                          selectedOption === option 
-                            ? 'border-blue-500 bg-blue-50 shadow-lg' 
-                            : 'border-gray-200 bg-white hover:border-blue-300'
-                        }`}>
-                          <RadioGroupItem value={option} id={`tf-${index}`} className="w-5 h-5" />
-                          <Label htmlFor={`tf-${index}`} className="flex-1 cursor-pointer">
-                            <div className="flex items-center gap-3">
-                              <span className={`font-bold text-lg px-4 py-2 rounded-full ${
-                                selectedOption === option 
-                                  ? 'bg-blue-500 text-white' 
-                                  : 'bg-gray-200 text-gray-700'
-                              }`}>
-                                {option === 'True' ? '✅' : '❌'}
-                              </span>
-                              <span className="text-gray-800 text-lg font-medium">{option}</span>
-                            </div>
-                          </Label>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </RadioGroup>
-              ) : (
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">Your Answer:</label>
-                  <textarea
-                    value={selectedOption}
-                    onChange={(e) => setSelectedOption(e.target.value)}
-                    className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none resize-none"
-                    rows={4}
-                    placeholder="Type your answer here..."
-                  />
-                </div>
-              )}
+              ) : null}
             </div>
 
             <div className="flex justify-between items-center pt-6 border-t border-gray-200 mt-8">
