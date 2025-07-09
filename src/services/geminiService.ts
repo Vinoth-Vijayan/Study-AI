@@ -24,15 +24,26 @@ Please provide a comprehensive analysis in the following JSON format:
       "title": "Key point title",
       "description": "Detailed description",
       "importance": "high/medium/low",
-      "tnpscRelevance": "TNPSC relevance explanation"
+      "tnpscRelevance": "TNPSC relevance explanation",
+      "tnpscPriority": "high/medium/low",
+      "memoryTip": "Easy memory tip for students"
     }
   ],
-  "keyPoints": ["Key point 1", "Key point 2", ...],
+  "keyPoints": ["Short crisp point 1", "Short crisp point 2", ...],
   "summary": "Overall summary of the content",
   "tnpscRelevance": "How this content is relevant for TNPSC exams",
   "tnpscCategories": ["Category1", "Category2", ...],
   "difficulty": "easy/medium/hard"
 }
+
+Focus on:
+- TNPSC Group 1, 2, 4 exam relevance
+- Key facts and figures that are easy to memorize
+- Important dates, names, places
+- Conceptual understanding
+- Application in exam context
+- Make key points short and crisp for easy memorization
+- Provide memory tips for better retention
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
@@ -77,7 +88,7 @@ Please provide a comprehensive analysis in the following JSON format:
     console.log('Raw Gemini response:', content);
 
     // Clean and parse the JSON response
-    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
     
     return {
@@ -114,31 +125,45 @@ Based on the following TNPSC study content, generate 15-20 comprehensive questio
 
 Content Analysis:
 ${combinedContent.map((content, index) => `
+Analysis ${index + 1}:
+Key Points: ${content.keyPoints}
+Summary: ${content.summary}
 TNPSC Relevance: ${content.tnpscRelevance}
+`).join('\n')}
+
 Difficulty Level: ${difficulty}
 ${languageInstruction}
 
-Generate a balanced mix of:
-- Multiple choice questions (4 options each) - 60%
-- True/False questions - 25% 
-- Short answer questions - 15%
+Generate ONLY these types of questions:
+- Multiple choice questions (4 options each) - 70%
+- Assertion-Reason questions - 30%
+
+For MCQ questions, provide 4 clear options (A, B, C, D).
+For Assertion-Reason questions, provide:
+- Assertion statement
+- Reason statement  
+- 4 options: (A) Both assertion and reason are true and reason is correct explanation (B) Both assertion and reason are true but reason is not correct explanation (C) Assertion is true but reason is false (D) Both assertion and reason are false
 
 Return as a JSON array:
 [
   {
     "question": "Question text here",
-    "options": ["Option A", "Option B", "Option C", "Option D"], // for MCQ only, omit for others
-    "answer": "Correct answer",
-    "type": "mcq" | "true_false" | "short_answer",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answer": "Correct option (A/B/C/D)",
+    "type": "mcq" | "assertion_reason",
     "difficulty": "${difficulty}",
     "tnpscGroup": "Group 1" | "Group 2" | "Group 4",
     "explanation": "Brief explanation of the answer"
   }
 ]
 
-- Factual knowledge
+Ensure questions test:
+- Factual knowledge from key points
+- Conceptual understanding  
+- Application ability
 - TNPSC exam pattern relevance
-`)}`;
+- Based on the crisp key points provided for easy memorization
+`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -176,13 +201,15 @@ Return as a JSON array:
     console.log('Raw questions response:', content);
 
     // Clean and parse the JSON response
-    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const questions = JSON.parse(cleanedContent);
     
-    // Ensure all questions have the correct type format
+    // Ensure all questions have the correct type format and proper options
     const formattedQuestions = questions.map((q: any) => ({
       ...q,
-      type: q.type === "short" ? "short_answer" : q.type
+      type: q.type === "short" ? "mcq" : q.type,
+      options: Array.isArray(q.options) ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+      answer: q.answer || "A"
     }));
 
     const result: QuestionResult = {
@@ -231,7 +258,7 @@ Content: ${textContent}
 
 Please provide analysis in JSON format:
 {
-  "keyPoints": ["Key point 1", "Key point 2", ...],
+  "keyPoints": ["Short crisp key point 1", "Short crisp key point 2", ...],
   "summary": "Brief summary of the page content",
   "importance": "high/medium/low",
   "tnpscRelevance": "How this content relates to TNPSC exams"
@@ -241,6 +268,7 @@ Focus on:
 - TNPSC exam relevance
 - Important facts and concepts
 - Key information for study
+- Make key points short and crisp for easy memorization
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
@@ -276,7 +304,7 @@ Focus on:
       throw new Error('No content received from Gemini API');
     }
 
-    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const analysis = JSON.parse(cleanedContent);
     
     return {
@@ -347,7 +375,7 @@ Page ${pageNumber} Content: ${pageContent.substring(0, 4000)}
 
 Please provide analysis in JSON format:
 {
-  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"],
+  "keyPoints": ["Short crisp key point 1", "Short crisp key point 2", "Short crisp key point 3", "Short crisp key point 4", "Short crisp key point 5"],
   "studyPoints": [
     {
       "title": "Study point title",
@@ -362,7 +390,7 @@ Please provide analysis in JSON format:
 }
 
 Focus on:
-- Extract at least 5 key points per page
+- Extract at least 5 short crisp key points per page for easy memorization
 - TNPSC exam relevance
 - Important facts and concepts
 - Key information for study
@@ -404,7 +432,7 @@ Focus on:
             continue;
           }
 
-          const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
+          const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
           const analysis = JSON.parse(cleanedContent);
           
           pageAnalyses.push({
@@ -466,10 +494,12 @@ Please provide a comprehensive analysis in the following JSON format:
       "title": "Key point title",
       "description": "Detailed description",
       "importance": "high/medium/low",
-      "tnpscRelevance": "TNPSC relevance explanation"
+      "tnpscRelevance": "TNPSC relevance explanation",
+      "tnpscPriority": "high/medium/low",
+      "memoryTip": "Easy memory tip for students"
     }
   ],
-  "keyPoints": ["Key point 1", "Key point 2", ...],
+  "keyPoints": ["Short crisp point 1", "Short crisp point 2", ...],
   "summary": "Overall summary of the content",
   "tnpscRelevance": "How this content is relevant for TNPSC exams",
   "tnpscCategories": ["Category1", "Category2", ...],
@@ -478,10 +508,12 @@ Please provide a comprehensive analysis in the following JSON format:
 
 Focus on:
 - TNPSC Group 1, 2, 4 exam relevance
-- Key facts and figures
+- Key facts and figures that are easy to memorize
 - Important dates, names, places
 - Conceptual understanding
 - Application in exam context
+- Make key points short and crisp for easy memorization
+- Provide memory tips for better retention
 `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
@@ -519,7 +551,7 @@ Focus on:
 
     console.log('Raw PDF analysis response:', content);
 
-    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
     
     return {
@@ -565,7 +597,7 @@ Page ${pageNumber} Content: ${textContent.substring(0, 4000)}
 
 Please provide detailed analysis in JSON format:
 {
-  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5", "Key point 6", "Key point 7", "Key point 8"],
+  "keyPoints": ["Short crisp key point 1", "Short crisp key point 2", "Short crisp key point 3", "Short crisp key point 4", "Short crisp key point 5", "Short crisp key point 6", "Short crisp key point 7", "Short crisp key point 8"],
   "studyPoints": [
     {
       "title": "Study point title",
@@ -579,7 +611,7 @@ Please provide detailed analysis in JSON format:
 }
 
 Focus on:
-- Extract at least 8 comprehensive key points per page
+- Extract at least 8 short crisp key points per page for easy memorization
 - Detailed study points with TNPSC relevance
 - Important facts and concepts
 - Key information for study
@@ -622,7 +654,7 @@ Focus on:
       throw new Error('No content received from Gemini API');
     }
 
-    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const analysis = JSON.parse(cleanedContent);
     
     return {

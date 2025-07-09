@@ -38,7 +38,7 @@ export interface Question {
   question: string;
   options?: string[];
   answer: string;
-  type: "mcq" | "true_false" | "short_answer";
+  type: "mcq" | "assertion_reason";
   difficulty: string;
   tnpscGroup: string;
   explanation?: string;
@@ -67,7 +67,6 @@ const StudyAssistant = () => {
     clearAppState
   } = useAppContext();
 
-  // FIX: Removed the duplicate declaration of currentView state.
   const [currentView, setCurrentView] = useState<"upload" | "analysis" | "questions" | "quiz" | "quick-analysis" | "pdf-page-select" | "comprehensive-pdf" | "pdf-navigator">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
@@ -457,40 +456,37 @@ const StudyAssistant = () => {
 
   if (currentView === "pdf-page-select" && pdfInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full">
-                  <Brain className="h-8 w-8 text-white" />
-                </div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  PDF Page Selection
-                </h1>
+      <div className="min-h-screen p-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full pulse-glow">
+                <Brain className="h-8 w-8 text-white" />
               </div>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Choose which pages you want to analyze for TNPSC preparation
-              </p>
+              <h1 className="text-4xl font-bold gradient-text">
+                PDF Page Selection
+              </h1>
             </div>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Choose which pages you want to analyze for TNPSC preparation
+            </p>
+          </div>
 
-            <PdfPageSelector
-              fileName={pdfInfo.file.name}
-              totalPages={pdfInfo.totalPages}
-              onPageRangeSelect={handlePdfPageRangeSelect}
-              onAnalyzeAll={handlePdfAnalyzeAll}
-              isAnalyzing={isAnalyzing}
-            />
+          <PdfPageSelector
+            fileName={pdfInfo.file.name}
+            totalPages={pdfInfo.totalPages}
+            onPageRangeSelect={handlePdfPageRangeSelect}
+            onAnalyzeAll={handlePdfAnalyzeAll}
+            isAnalyzing={isAnalyzing}
+          />
 
-            <div className="mt-6 text-center">
-              <Button
-                onClick={resetToUpload}
-                variant="outline"
-                className="border-2"
-              >
-                Back to Upload
-              </Button>
-            </div>
+          <div className="mt-6 text-center">
+            <Button
+              onClick={resetToUpload}
+              className="btn-secondary"
+            >
+              Back to Upload
+            </Button>
           </div>
         </div>
       </div>
@@ -498,134 +494,169 @@ const StudyAssistant = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '4s'}}></div>
-      </div>
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto relative z-10">
-          <div className="text-center mb-8 animate-fadeInUp">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-elegant pulse-glow">
-                <Brain className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-4xl md:text-6xl font-bold gradient-text">
-                Ram's AI
-              </h1>
+    <div className="min-h-screen p-4">
+      <div className="container mx-auto max-w-4xl">
+        <div className="text-center mb-8 animate-fadeInUp">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-elegant pulse-glow">
+              <Brain className="h-10 w-10 text-white" />
             </div>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Upload your study materials and get AI-powered analysis, key points, and practice questions for TNPSC preparation
-            </p>
+            <h1 className="text-5xl md:text-6xl font-bold gradient-text">
+              Ram's AI
+            </h1>
           </div>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Transform your TNPSC preparation with AI-powered analysis. Upload your study materials and get instant insights, key points, and practice questions.
+          </p>
+        </div>
 
-          <Card className="glass-card p-8 mb-8 animate-fadeInScale hover-lift">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Difficulty Level
-                  </label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    className="input-elegant"
-                  >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                    <option value="very-hard">Very Hard</option>
-                  </select>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Output Language
-                  </label>
-                  <select
-                    value={outputLanguage}
-                    onChange={(e) => setOutputLanguage(e.target.value as "english" | "tamil")}
-                    className="input-elegant"
-                  >
-                    <option value="english">English</option>
-                    <option value="tamil">தமிழ் (Tamil)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-all duration-300 hover:bg-blue-50/50 hover:shadow-lg">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,application/pdf"
-                  onChange={(e) => handleFileSelect(e.target.files)}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4 icon-bounce" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    Upload Your Study Materials
-                  </p>
-                  <p className="text-gray-500">
-                    Images (PNG, JPG) and PDF files supported
-                  </p>
+        <Card className="glass-card p-8 mb-8 animate-fadeInScale hover-lift">
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <label className="block text-sm font-semibold text-gray-700">
+                  <Settings className="h-4 w-4 inline mr-2" />
+                  Difficulty Level
                 </label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className="input-elegant"
+                >
+                  <option value="easy">🟢 Easy - Basic concepts</option>
+                  <option value="medium">🟡 Medium - Standard level</option>
+                  <option value="hard">🔴 Hard - Advanced level</option>
+                  <option value="very-hard">⚫ Very Hard - Expert level</option>
+                </select>
               </div>
 
-              {selectedFiles.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-800">
-                    <span className="gradient-text">Selected Files ({selectedFiles.length})</span>
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 stagger-animation">
-                    {selectedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg hover-lift shadow-sm">
+              <div className="space-y-4">
+                <label className="block text-sm font-semibold text-gray-700">
+                  <Languages className="h-4 w-4 inline mr-2" />
+                  Output Language
+                </label>
+                <select
+                  value={outputLanguage}
+                  onChange={(e) => setOutputLanguage(e.target.value as "english" | "tamil")}
+                  className="input-elegant"
+                >
+                  <option value="english">🇬🇧 English</option>
+                  <option value="tamil">🇮🇳 தமிழ் (Tamil)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="glass-card p-8 border-2 border-dashed border-gray-300 hover:border-blue-400 transition-all duration-300 hover:bg-blue-50/30">
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="cursor-pointer block text-center">
+                <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4 icon-bounce" />
+                <p className="text-xl font-semibold text-gray-700 mb-2">
+                  Upload Your Study Materials
+                </p>
+                <p className="text-gray-500 text-lg">
+                  Drag & drop or click to select images and PDF files
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Supports: JPG, PNG, GIF, PDF (up to 10MB each)
+                </p>
+              </label>
+            </div>
+
+            {selectedFiles.length > 0 && (
+              <div className="space-y-6">
+                <h3 className="font-semibold text-gray-800 text-lg">
+                  <span className="gradient-text">Selected Files ({selectedFiles.length})</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-animation">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="glass-card p-4 hover-lift">
+                      <div className="flex items-center gap-3 mb-3">
                         {file.type.startsWith('image/') ? (
-                          <Image className="h-5 w-5 text-blue-600" />
+                          <Image className="h-6 w-6 text-blue-600" />
                         ) : (
-                          <FileText className="h-5 w-5 text-red-600" />
+                          <FileText className="h-6 w-6 text-red-600" />
                         )}
-                        <span className="text-sm text-gray-700 truncate">
-                          {file.name}
+                        <span className="text-sm font-medium text-gray-700">
+                          {file.type.startsWith('image/') ? 'Image' : 'PDF'}
                         </span>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                    <Button
-                      onClick={analyzeFiles}
-                      disabled={isAnalyzing}
-                      className="flex-1 btn-primary py-6 text-lg"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Settings className="h-5 w-5 mr-3" />
-                          Detailed Analysis
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      onClick={startQuickAnalysis}
-                      className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-6 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border-0 rounded-xl"
-                    >
-                      <Zap className="h-5 w-5 mr-3" />
-                      Quick Quiz
-                    </Button>
-                  </div>
+                      <div className="text-sm text-gray-600">
+                        <div className="font-medium truncate mb-1">{file.name}</div>
+                        <div className="text-xs">({(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+
+                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                  <Button
+                    onClick={analyzeFiles}
+                    disabled={isAnalyzing}
+                    className="flex-1 btn-primary py-6 text-lg"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="h-5 w-5 mr-3" />
+                        Detailed Analysis
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={startQuickAnalysis}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-6 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border-0 rounded-xl"
+                  >
+                    <Zap className="h-5 w-5 mr-3" />
+                    Quick Quiz
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Features Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger-animation">
+          <Card className="glass-card p-6 text-center hover-lift">
+            <div className="p-3 bg-blue-100 rounded-full w-fit mx-auto mb-4">
+              <FileText className="h-8 w-8 text-blue-600" />
             </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Smart Analysis</h3>
+            <p className="text-gray-600 text-sm">
+              AI-powered analysis extracts key points and creates crisp, memorable study notes
+            </p>
+          </Card>
+
+          <Card className="glass-card p-6 text-center hover-lift">
+            <div className="p-3 bg-purple-100 rounded-full w-fit mx-auto mb-4">
+              <Brain className="h-8 w-8 text-purple-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">MCQ & Assertion Questions</h3>
+            <p className="text-gray-600 text-sm">
+              Generate TNPSC-style multiple choice and assertion-reason questions for practice
+            </p>
+          </Card>
+
+          <Card className="glass-card p-6 text-center hover-lift">
+            <div className="p-3 bg-green-100 rounded-full w-fit mx-auto mb-4">
+              <Zap className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Instant Results</h3>
+            <p className="text-gray-600 text-sm">
+              Get immediate feedback with detailed explanations and performance tracking
+            </p>
           </Card>
         </div>
       </div>
