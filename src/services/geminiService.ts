@@ -77,7 +77,7 @@ Please provide a comprehensive analysis in the following JSON format:
     console.log('Raw Gemini response:', content);
 
     // Clean and parse the JSON response
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
     const result = JSON.parse(cleanedContent);
     
     return {
@@ -176,7 +176,7 @@ Return as a JSON array:
     console.log('Raw questions response:', content);
 
     // Clean and parse the JSON response
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
     const questions = JSON.parse(cleanedContent);
     
     // Ensure all questions have the correct type format
@@ -243,7 +243,7 @@ Focus on:
 - Key information for study
 `;
 
-    const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ Focus on:
     });
 
     if (!response.ok) {
-      throw new Error(\`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
@@ -276,7 +276,7 @@ Focus on:
       throw new Error('No content received from Gemini API');
     }
 
-    const cleanedContent = content.replace(/``\`json\n?|\n?```/g, '').trim();
+    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
     const analysis = JSON.parse(cleanedContent);
     
     return {
@@ -321,7 +321,7 @@ export const analyzePdfContentComprehensive = async (
     const pageRegex = /==Start of OCR for page (\d+)==([\s\S]*?)==End of OCR for page \1==/g;
     const pageMatches = Array.from(textContent.matchAll(pageRegex));
     
-    console.log(\`Found ${pageMatches.length} pages to analyze`);
+    console.log(`Found ${pageMatches.length} pages to analyze`);
     
     // Process pages in batches to avoid API limits
     const batchSize = 5;
@@ -369,7 +369,7 @@ Focus on:
 `;
 
         try {
-          const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -392,7 +392,7 @@ Focus on:
           });
 
           if (!response.ok) {
-            console.error(\`Failed to analyze page ${pageNumber}`);
+            console.error(`Failed to analyze page ${pageNumber}`);
             continue;
           }
 
@@ -400,11 +400,11 @@ Focus on:
           const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (!content) {
-            console.error(\`No content received for page ${pageNumber}`);
+            console.error(`No content received for page ${pageNumber}`);
             continue;
           }
 
-          const cleanedContent = content.replace(/``\`json\n?|\n?```/g, '').trim();
+          const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
           const analysis = JSON.parse(cleanedContent);
           
           pageAnalyses.push({
@@ -419,7 +419,7 @@ Focus on:
           allCategories.push(...(analysis.tnpscCategories || []));
           
         } catch (error) {
-          console.error(\`Error analyzing page ${pageNumber}:`, error);
+          console.error(`Error analyzing page ${pageNumber}:`, error);
         }
         
         // Small delay to avoid rate limiting
@@ -428,7 +428,7 @@ Focus on:
     }
     
     // Generate overall summary
-    const overallSummary = \`Comprehensive analysis of ${pageAnalyses.length} pages with ${allKeyPoints.length} total key points identified.`;
+    const overallSummary = `Comprehensive analysis of ${pageAnalyses.length} pages with ${allKeyPoints.length} total key points identified.`;
     
     return {
       pageAnalyses,
@@ -484,7 +484,7 @@ Focus on:
 - Application in exam context
 `;
 
-    const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -507,7 +507,7 @@ Focus on:
     });
 
     if (!response.ok) {
-      throw new Error(\`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
@@ -519,7 +519,7 @@ Focus on:
 
     console.log('Raw PDF analysis response:', content);
 
-    const cleanedContent = content.replace(/``\`json\n?|\n?```/g, '').trim();
+    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
     const result = JSON.parse(cleanedContent);
     
     return {
@@ -589,7 +589,7 @@ Focus on:
 - Historical context and significance
 `;
 
-    const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -612,7 +612,7 @@ Focus on:
     });
 
     if (!response.ok) {
-      throw new Error(\`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
@@ -622,7 +622,7 @@ Focus on:
       throw new Error('No content received from Gemini API');
     }
 
-    const cleanedContent = content.replace(/``\`json\n?|\n?```/g, '').trim();
+    const cleanedContent = content.replace(new RegExp('```json\\n?|\\n?```', 'g'), '').trim();
     const analysis = JSON.parse(cleanedContent);
     
     return {
@@ -633,7 +633,7 @@ Focus on:
       tnpscRelevance: analysis.tnpscRelevance || ''
     };
   } catch (error) {
-    console.error(\`Error analyzing page ${pageNumber}:`, error);
+    console.error(`Error analyzing page ${pageNumber}:`, error);
     throw error;
   }
 };
